@@ -6,7 +6,6 @@
     <title>Carrera de Caballos - Casino</title>
     <style>
         /* --- ESTILOS GENERALES (Tema Dark Casino) --- */
-        /* Usamos 100vh para ocupar toda la altura de la pantalla y flex column para organizar */
         body {
             font-family: 'Segoe UI', Roboto, sans-serif;
             background-color: #05131a;
@@ -15,28 +14,47 @@
             padding: 0;
             user-select: none;
             text-align: center;
-            height: 100vh; /* Ocupar toda la pantalla */
+            /* Layout Vertical Flexible que ocupa EXACTAMENTE la pantalla */
+            height: 100vh; 
+            height: 100dvh; /* Soporte mejorado para navegadores móviles */
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* Evitar scroll */
+            overflow: hidden; 
         }
         
         /* HEADER (Fijo arriba) */
-        .top-bar { background: #000; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #FFD700; flex-shrink: 0; }
+        .top-bar { 
+            background: #000; 
+            padding: 10px 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 2px solid #FFD700; 
+            flex-shrink: 0; /* No se encoge */
+            height: 50px;
+            box-sizing: border-box;
+        }
         .saldo { color: #00e676; font-weight: bold; font-family: monospace; font-size: 1.2em; }
         .btn-salir { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; }
 
-        /* ZONA DE PISTA (Flexible: Ocupa el espacio central) */
+        /* ZONA DE PISTA (Ocupa el espacio sobrante) */
         .pista-wrapper {
-            flex: 1; /* Toma todo el espacio sobrante */
+            flex: 1; /* Ocupa todo el espacio disponible entre header y footer */
             padding: 5px 10px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            min-height: 0; /* Importante para que flex funcione bien en móviles */
+            min-height: 0; /* Crucial para scroll interno si fuera necesario */
+            background: #0d2733; /* Fondo oscuro detrás de la pista */
         }
         
-        .titulo-pista { color: gold; margin: 5px 0; font-size: 1.2em; text-shadow: 0 0 10px rgba(255,215,0,0.5); flex-shrink: 0; }
+        .titulo-pista { 
+            color: gold; 
+            margin: 5px 0; 
+            font-size: 1.2em; 
+            text-shadow: 0 0 10px rgba(255,215,0,0.5); 
+            flex-shrink: 0; 
+        }
         
         .pista-container {
             background: #2e7d32;
@@ -45,9 +63,10 @@
             position: relative;
             overflow: hidden;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
-            flex: 1; /* Ocupa toda la altura del wrapper */
+            /* Ocupa todo el alto disponible dentro del wrapper */
+            flex: 1; 
             display: flex;
-            flex-direction: column; /* Para apilar carriles */
+            flex-direction: column;
         }
 
         .meta-line {
@@ -61,26 +80,26 @@
             opacity: 0.7;
         }
 
-        /* CARRILES FLEXIBLES */
+        /* CARRILES RESPONSIVE */
         .carril {
-            flex: 1; /* Cada carril toma 1/4 del espacio vertical disponible */
+            flex: 1; /* Se reparten la altura equitativamente */
             border-bottom: 1px dashed rgba(255,255,255,0.2);
             position: relative;
-            /* Usamos un tamaño de fuente relativo a la altura de la pantalla para que los iconos escalen */
-            font-size: min(4vh, 30px); 
+            display: flex;
+            align-items: center; /* Centrar caballo verticalmente */
         }
         .carril:last-child { border-bottom: none; }
 
         .caballo {
-            font-size: 1.8em; /* El icono es casi el doble del tamaño base del carril */
+            /* Tamaño dinámico: se adapta si la pantalla es pequeña */
+            font-size: clamp(20px, 5vh, 40px); 
             position: absolute;
             left: 2%;
-            top: 50%;
-            /* Centrar verticalmente y voltear el icono para que mire a la derecha */
-            transform: translateY(-50%) scaleX(-1);
+            transform: scaleX(-1); /* Mirar a la derecha */
             transition: left 0.1s linear;
             z-index: 10;
             filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+            line-height: 1;
         }
 
         .numero-caballo {
@@ -93,22 +112,22 @@
             top: -5px;
             right: 5px;
             z-index: 11;
-            transform: scaleX(-1); /* Des-voltear número */
+            transform: scaleX(-1);
             border: 1px solid white;
             font-weight: bold;
         }
 
-        /* PANEL DE APUESTAS (Fijo abajo en el flujo flex) */
+        /* PANEL DE APUESTAS (Fijo abajo, siempre visible) */
         .panel-apuestas {
             background: #0f2027;
-            padding: 10px;
+            padding: 10px 15px 20px 15px; /* Padding extra abajo para móviles modernos */
             border-top: 2px solid #FFD700;
-            /* Ya no es fixed, es parte del flujo flex al final */
-            flex-shrink: 0;
+            flex-shrink: 0; /* No se encoge nunca */
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 8px;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+            z-index: 20;
         }
 
         .titulo-panel { text-align: left; color: #aaa; font-size: 0.8em; margin-bottom: 2px; }
@@ -116,23 +135,25 @@
         .grid-caballos {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 5px;
+            gap: 8px;
         }
 
         .btn-select {
             background: #1a1a1a;
             border: 1px solid #444;
             color: white;
-            padding: 8px 10px;
-            border-radius: 6px;
+            padding: 10px;
+            border-radius: 8px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 0.9em;
             transition: all 0.2s;
+            /* Mejor área táctil */
+            min-height: 35px; 
         }
-        .btn-select:active { transform: scale(0.98); }
+        .btn-select:active { transform: scale(0.98); background: #333; }
         
         .btn-select.activo {
             background: linear-gradient(45deg, #FFD700, #ffca28);
@@ -141,36 +162,41 @@
             font-weight: bold;
         }
 
-        /* Input y Botón Compactos */
-        .controles-fila { display: flex; gap: 5px; margin-top: 5px; }
+        /* CONTROLES INPUT Y BOTON */
+        .controles-fila { display: flex; gap: 8px; margin-top: 5px; }
         
         .input-monto {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             background: #000;
             border: 1px solid #555;
             color: #00e676;
-            font-size: 1.1em;
+            font-size: 1.2em;
             text-align: center;
-            border-radius: 6px;
+            border-radius: 8px;
             font-family: monospace;
             font-weight: bold;
+            outline: none;
         }
+        .input-monto:focus { border-color: #00e676; }
+
         .btn-correr {
             flex: 1.5;
             background: radial-gradient(circle, #d50000, #b71c1c);
             color: white;
             border: none;
-            padding: 10px;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 8px;
             font-size: 1.1em;
             font-weight: 900;
             cursor: pointer;
             text-transform: uppercase;
+            box-shadow: 0 4px 0 #7f0000;
         }
-        .btn-correr:disabled { filter: grayscale(1); opacity: 0.6; }
+        .btn-correr:active { transform: translateY(2px); box-shadow: 0 2px 0 #7f0000; }
+        .btn-correr:disabled { filter: grayscale(1); opacity: 0.6; transform: none; box-shadow: none; }
 
-        .cuota-badge { background: #333; color: #ccc; padding: 1px 5px; border-radius: 4px; font-size: 0.8em; }
+        .cuota-badge { background: #333; color: #ccc; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
         .btn-select.activo .cuota-badge { background: black; color: gold; }
 
         /* OVERLAY GANADOR */
@@ -182,6 +208,8 @@
             justify-content: center;
             align-items: center;
             z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -195,27 +223,27 @@
     <div class="pista-wrapper">
         <h2 class="titulo-pista">🏁 TURF CASINO 🏁</h2>
         <div class="pista-container" id="contenedor-pista">
-            </div>
+        </div>
     </div>
 
     <div class="panel-apuestas">
-        <div class="titulo-panel">ELIGE GANE:</div>
+        <div class="titulo-panel">SELECCIONA GANADOR:</div>
         <div class="grid-caballos" id="lista-caballos">
-            </div>
+        </div>
 
         <div class="controles-fila">
-            <input type="number" id="montoApuesta" class="input-monto" placeholder="$ Apuesta" inputmode="numeric">
-            <button id="btn-iniciar" class="btn-correr" onclick="iniciarCarrera()">¡ARRANCAN!</button>
+            <input type="number" id="montoApuesta" class="input-monto" placeholder="$" inputmode="numeric">
+            <button id="btn-iniciar" class="btn-correr" onclick="iniciarCarrera()">JUGAR</button>
         </div>
     </div>
 
     <div id="ganador-overlay">
         <div style="font-size: 5em;">🏆</div>
         <h2 style="color:white; margin:10px;">GANÓ EL CABALLO</h2>
-        <h1 style="color:gold; font-size: 2.5em; margin: 5px 0;" id="win-name">...</h1>
+        <h1 style="color:gold; font-size: 2.5em; margin: 5px 0; text-align:center;" id="win-name">...</h1>
         <h1 style="color:#00e676; margin-top:10px;" id="win-monto">...</h1>
         <br>
-        <button class="btn-salir" style="font-size:1.1em; padding:12px 30px; background: #0277bd; border:none;" onclick="cerrarOverlay()">CONTINUAR</button>
+        <button class="btn-salir" style="font-size:1.1em; padding:15px 40px; background: #0277bd; border:none; border-radius:10px;" onclick="cerrarOverlay()">CONTINUAR</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -236,7 +264,6 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
-        // --- CAMBIO AQUÍ: TODOS SON CABALLOS (🏇) ---
         const CABALLOS = [
             { id: 1, nombre: "Relámpago", icono: "🏇", color: "#d32f2f", cuota: 2.0 }, 
             { id: 2, nombre: "Tornado", icono: "🏇", color: "#1976d2", cuota: 3.5 },
@@ -287,8 +314,8 @@
                 btn.id = `btn-sel-${c.id}`;
                 btn.onclick = () => seleccionarCaballo(c.id);
                 btn.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        <span style="background:${c.color}; width:18px; height:18px; border-radius:50%; display:inline-block; text-align:center; font-size:11px; line-height:18px; color:white; font-weight:bold;">${c.id}</span>
+                    <div style="display:flex; align-items:center; gap:5px; overflow:hidden;">
+                        <span style="background:${c.color}; min-width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; color:white; font-weight:bold;">${c.id}</span>
                         <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.nombre}</span>
                     </div>
                     <div class="cuota-badge">x${c.cuota}</div>
@@ -305,7 +332,6 @@
             if(navigator.vibrate) navigator.vibrate(20);
         }
 
-        // Lógica de probabilidad ponderada (igual que antes)
         function obtenerGanadorPorProbabilidad() {
             let pesos = CABALLOS.map(c => 1 / c.cuota);
             let totalPeso = pesos.reduce((a, b) => a + b, 0);
@@ -348,7 +374,6 @@
                     if (Math.random() < 0.05) avance -= 0.5;
 
                     progreso[c.id] += avance;
-                    // Tope visual 91% para que no se corten los caballos
                     document.getElementById(`caballo-${c.id}`).style.left = Math.min(progreso[c.id], 91) + '%';
                     if(progreso[c.id] >= 90) alguienCruzo = true;
                 });

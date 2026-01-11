@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Raspa y Gana - Casino</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --card-bg: #eee;
+            --scratch-color: #C0C0C0; /* Plateado */
+            --gold: #FFD700;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none;
+            overflow-x: hidden;
+            padding-bottom: 50px; /* Espacio para scroll */
+        }
+
+        /* HEADER */
+        .top-bar {
+            width: 100%; padding: 15px; display: flex; justify-content: space-between;
+            background: #1a1a1a; border-bottom: 2px solid var(--gold);
+            box-sizing: border-box;
+            position: sticky; top: 0; z-index: 50;
+        }
+        .saldo { color: #00e676; font-weight: bold; font-family: monospace; font-size: 1.2em; }
+
+        /* AREA DE JUEGO */
+        .game-area {
+            position: relative;
+            margin-top: 20px;
+            width: 300px;
+            height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            flex-shrink: 0; /* Evita que se achique */
+        }
+
+        /* CAPA DE PREMIOS (ABAJO) */
+        .hidden-layer {
+            width: 100%; height: 100%;
+            background: white;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1; /* Abajo */
+        }
+
+        .grid-item {
+            display: flex; align-items: center; justify-content: center;
+            border: 1px dashed #ccc;
+            font-size: 40px;
+        }
+
+        /* CAPA DE RASPADO (ARRIBA) */
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 2; /* Arriba */
+            border-radius: 10px;
+            cursor: pointer;
+            touch-action: none; /* CRUCIAL: Evita scroll en celular */
+        }
+
+        /* CONTROLES */
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .btn-buy { background: var(--gold); color: black; box-shadow: 0 0 10px var(--gold); }
+        .btn-buy:active { transform: scale(0.98); }
+        
+        .price-tag { color: #aaa; margin-bottom: 10px; font-size: 0.9em; }
+
+        /* POPUPS (GANAR / PERDER) */
+        .popup-msg {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            background: rgba(0,0,0,0.95); 
+            padding: 30px; border-radius: 15px; text-align: center;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            pointer-events: none; z-index: 100;
+            width: 250px;
+        }
+        .popup-msg.show { transform: translate(-50%, -50%) scale(1); }
+
+        #win-msg { border: 3px solid #00e676; box-shadow: 0 0 30px rgba(0, 230, 118, 0.4); }
+        #lose-msg { border: 3px solid #ff5252; box-shadow: 0 0 30px rgba(255, 82, 82, 0.4); }
+
+        /* INSTRUCCIONES */
+        .instructions-box {
+            margin-top: 30px;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            max-width: 320px;
+            text-align: left;
+        }
+        .instructions-box h3 { color: var(--gold); margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .instructions-box p { color: #ccc; font-size: 0.9em; line-height: 1.5; margin: 8px 0; }
+        .item-row { display: flex; justify-content: space-between; font-size: 0.85em; color: #888; border-bottom: 1px dashed #333; padding: 4px 0;}
+
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div onclick="location.href='index.html'" style="cursor:pointer; display:flex; align-items:center;">
+            ⬅️ <span style="margin-left:5px">Lobby</span>
+        </div>
+        <div class="saldo" id="miSaldo">$ --</div>
+    </div>
+
+    <h2 style="color:var(--gold); margin: 15px 0 5px 0;">RASPA Y GANA</h2>
+    <div class="price-tag">Costo del cartón: <span style="color:white">$500</span></div>
+
+    <div class="game-area" id="contenedor-juego">
+        <div class="hidden-layer" id="grid-premios"></div>
+        <canvas id="scratch-canvas" width="300" height="300"></canvas>
+    </div>
+
+    <div class="controls">
+        <button id="btn-comprar" class="btn-action btn-buy" onclick="comprarCarton()">COMPRAR CARTÓN</button>
+        <div id="instruccion" style="display:none; color:#00e676; margin-top:5px; font-weight:bold; animation: pulse 1s infinite;">✨ ¡RASPA CON EL DEDO! ✨</div>
+    </div>
+
+    <div id="win-msg" class="popup-msg">
+        <h1 style="margin:0; font-size:3em">🎉</h1>
+        <h2 style="color:#00e676; margin:10px 0;">¡GANASTE!</h2>
+        <h3 style="color:white">+$<span id="monto-ganado">0</span></h3>
+    </div>
+
+    <div id="lose-msg" class="popup-msg">
+        <h1 style="margin:0; font-size:3em">🍀</h1>
+        <h2 style="color:#ff5252; margin:10px 0;">SIGUE INTENTANDO</h2>
+        <p style="color:#aaa; font-size: 0.9em;">¡La suerte está cerca!</p>
+    </div>
+
+    <div class="instructions-box">
+        <h3>📜 CÓMO JUGAR</h3>
+        <p>1. Compra tu cartón por <b>$500</b> pesos.</p>
+        <p>2. Pasa el dedo sobre el cuadro gris para raspar y descubrir las figuras.</p>
+        <p>3. Si encuentras <b>3 figuras iguales</b>, ¡Ganas el premio correspondiente inmediatamente!</p>
+        
+        <h4 style="margin: 15px 0 5px 0; color:#fff;">Tabla de Pagos:</h4>
+        <div class="item-row"><span>3x 💰 Saco de dinero</span> <span style="color:var(--gold)">$1.000</span></div>
+        <div class="item-row"><span>3x 💎 Diamante</span> <span style="color:var(--gold)">$2.500</span></div>
+        <div class="item-row"><span>3x 👑 Corona</span> <span style="color:var(--gold)">$5.000</span></div>
+        <div class="item-row"><span>3x 🚀 Cohete (Jackpot)</span> <span style="color:var(--gold)">$10.000</span></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // CONFIGURACIÓN
+        const COSTO_CARTON = 500;
+        
+        const ITEMS = [
+            { icon: '🍒', val: 0 },  
+            { icon: '🍋', val: 0 },  
+            { icon: '🍇', val: 0 },  
+            { icon: '💰', val: 1000 }, 
+            { icon: '💎', val: 2500 }, 
+            { icon: '👑', val: 5000 }, 
+            { icon: '🚀', val: 10000 } 
+        ];
+
+        // FIREBASE INIT
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
+            authDomain: "casino-familia.firebaseapp.com",
+            databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+            projectId: "casino-familia",
+            storageBucket: "casino-familia.firebasestorage.app",
+            messagingSenderId: "390973825874",
+            appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // VARIABLES
+        let usuario = null;
+        let saldo = 0;
+        let canvas, ctx;
+        let isDrawing = false;
+        let jugando = false;
+        let resultadoActual = { gana: false, premio: 0 };
+        let raspadoCompleto = false;
+
+        window.onload = function() {
+            canvas = document.getElementById('scratch-canvas');
+            ctx = canvas.getContext('2d');
+            
+            canvas.addEventListener('mousedown', startScratch);
+            canvas.addEventListener('mousemove', scratch);
+            canvas.addEventListener('mouseup', endScratch);
+            canvas.addEventListener('mouseleave', endScratch);
+            
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startScratch(e.touches[0]); });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); scratch(e.touches[0]); });
+            canvas.addEventListener('touchend', endScratch);
+
+            resetCanvas(true); 
+        };
+
+        auth.onAuthStateChanged(u => {
+            if(u) {
+                usuario = u;
+                db.ref('usuarios/'+u.uid+'/saldo').on('value', s => {
+                    saldo = s.val() || 0;
+                    document.getElementById('miSaldo').innerText = "$ " + new Intl.NumberFormat().format(saldo);
+                });
+            } else {
+                location.href = 'index.html';
+            }
+        });
+
+        function comprarCarton() {
+            if(jugando) return;
+            if(saldo < COSTO_CARTON) return alert("Saldo insuficiente");
+
+            db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - COSTO_CARTON });
+            iniciarPartida();
+        }
+
+        function iniciarPartida() {
+            jugando = true;
+            raspadoCompleto = false;
+            document.getElementById('btn-comprar').style.display = 'none';
+            document.getElementById('instruccion').style.display = 'block';
+
+            // Lógica de probabilidad
+            const rand = Math.random() * 100;
+            let premioElegido = null;
+
+            if(rand < 60) premioElegido = null; 
+            else if(rand < 85) premioElegido = ITEMS[3]; 
+            else if(rand < 95) premioElegido = ITEMS[4]; 
+            else if(rand < 99) premioElegido = ITEMS[5]; 
+            else premioElegido = ITEMS[6]; 
+
+            let gridFinal = [];
+            
+            if(premioElegido) {
+                gridFinal = [premioElegido, premioElegido, premioElegido];
+                resultadoActual = { gana: true, premio: premioElegido.val };
+                while(gridFinal.length < 9) {
+                    let itemRand = ITEMS[Math.floor(Math.random() * 3)]; 
+                    gridFinal.push(itemRand);
+                }
+            } else {
+                resultadoActual = { gana: false, premio: 0 };
+                for(let i=0; i<9; i++) {
+                    gridFinal.push(ITEMS[Math.floor(Math.random() * 4)]); 
+                }
+            }
+
+            gridFinal = gridFinal.sort(() => Math.random() - 0.5);
+
+            const divGrid = document.getElementById('grid-premios');
+            divGrid.innerHTML = '';
+            gridFinal.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'grid-item';
+                div.innerHTML = item.icon;
+                if(item.val > 0) div.style.color = '#FFD700'; 
+                divGrid.appendChild(div);
+            });
+
+            resetCanvas(false);
+        }
+
+        function finalizarJuego() {
+            if(!jugando) return;
+            jugando = false;
+
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+
+            if(resultadoActual.gana) {
+                db.ref('usuarios/'+usuario.uid).update({ saldo: saldo + resultadoActual.premio });
+                document.getElementById('monto-ganado').innerText = new Intl.NumberFormat().format(resultadoActual.premio);
+                
+                const popup = document.getElementById('win-msg');
+                popup.classList.add('show');
+                if(navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
+                
+                setTimeout(() => { popup.classList.remove('show'); }, 3000);
+            } else {
+                // PERDIÓ - MOSTRAR POPUP DE PERDEDOR
+                const popup = document.getElementById('lose-msg');
+                popup.classList.add('show');
+                if(navigator.vibrate) navigator.vibrate(200);
+
+                setTimeout(() => { popup.classList.remove('show'); }, 3000);
+            }
+
+            setTimeout(() => {
+                document.getElementById('btn-comprar').style.display = 'block';
+                document.getElementById('instruccion').style.display = 'none';
+            }, 1000);
+        }
+
+        function resetCanvas(bloqueado) {
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Creamos un degradado plateado
+            let grd = ctx.createLinearGradient(0, 0, 300, 300);
+            grd.addColorStop(0, "#C0C0C0");
+            grd.addColorStop(0.5, "#E0E0E0");
+            grd.addColorStop(1, "#A9A9A9");
+            
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Texto sobre la tinta
+            ctx.fillStyle = '#666';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = "center";
+            ctx.fillText("RASPA AQUÍ", 150, 150);
+            ctx.font = '14px Arial';
+            ctx.fillText("🎰 CASINO 🎰", 150, 175);
+            
+            if(bloqueado) {
+                ctx.fillStyle = "rgba(0,0,0,0.8)";
+                ctx.fillRect(0,0, canvas.width, canvas.height);
+            }
+        }
+
+        function startScratch(e) {
+            if(!jugando || raspadoCompleto) return;
+            isDrawing = true;
+            scratch(e);
+        }
+
+        function endScratch() {
+            if(!isDrawing) return;
+            isDrawing = false;
+            checkProgress();
+        }
+
+        function scratch(e) {
+            if (!isDrawing || !jugando) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.pageX) - rect.left;
+            const y = (e.clientY || e.pageY) - rect.top;
+
+            ctx.globalCompositeOperation = 'destination-out'; 
+            ctx.beginPath();
+            ctx.arc(x, y, 25, 0, Math.PI * 2); // Pincel un poco más grande
+            ctx.fill();
+        }
+
+        function checkProgress() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            let transparentPixels = 0;
+            
+            for (let i = 3; i < pixels.length; i += 4) {
+                if (pixels[i] === 0) transparentPixels++;
+            }
+
+            const percentage = (transparentPixels / (canvas.width * canvas.height)) * 100;
+
+            if (percentage > 40) {
+                raspadoCompleto = true;
+                finalizarJuego();
+            }
+        }
+    </script>
+</body>
+</html>
