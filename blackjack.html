@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Blackjack Casino Real</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-boton: #0056b3;
+            --rojo-boton: #b30000;
+            --oro: #ffd700;
+            --sombra-cartas: 5px 10px 20px rgba(0,0,0,0.5);
+        }
+
+        body { 
+            /* --- AQUÍ ESTÁ TU NUEVA IMAGEN DE FONDO --- */
+            background-image: url('mesa.jpg'); 
+            background-size: cover;
+            background-position: center center; /* Centramos la mesa */
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            
+            color: white; 
+            font-family: 'Roboto', sans-serif;
+            margin: 0; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative; /* Necesario para el overlay */
+        }
+
+        /* Capa oscura para que resalten las cartas sobre el fondo brillante */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5); /* Oscurece el casino un 50% */
+            z-index: -1;
+        }
+
+        /* BARRA SUPERIOR */
+        .top-bar { 
+            background: rgba(0,0,0,0.9); 
+            padding: 10px 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-bottom: 1px solid rgba(255,215,0,0.3);
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .saldo { color: #28a745; font-weight: bold; font-size: 1.2em; text-shadow: 1px 1px 2px black; }
+        .btn-salir { background: var(--rojo-boton); color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+
+        /* CONTENEDOR PRINCIPAL */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 80px;
+            perspective: 1000px; /* Perspectiva para el 3D */
+        }
+
+        /* PANTALLA DE INICIO */
+        .pantalla-apuesta { 
+            background: rgba(0,0,0,0.8);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid var(--oro);
+            z-index: 20;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+        }
+        .input-apuesta { padding: 10px; font-size: 1.5em; width: 120px; text-align: center; border-radius: 8px; border: 2px solid var(--oro); margin: 15px 0; background: #222; color: var(--oro); font-weight: bold; }
+        .btn-jugar { background: linear-gradient(to bottom, var(--oro), #e6c200); color: black; border: none; padding: 12px 40px; font-size: 1.3em; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 5px 15px rgba(255,215,0,0.4); transition: transform 0.1s; }
+        .btn-jugar:active { transform: scale(0.98); }
+
+        /* ÁREA DE JUEGO */
+        #mesa-juego { width: 100%; max-width: 500px; }
+        .zona-jugador-dealer { margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; }
+
+        .puntaje-label { 
+            background: rgba(0,0,0,0.8); 
+            padding: 6px 25px; 
+            border-radius: 20px; 
+            margin-bottom: 15px; 
+            display: inline-block; 
+            font-weight: bold;
+            font-size: 1em;
+            border: 1px solid rgba(255,215,0,0.4);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .zona-cartas { 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+            /* Inclinamos ligeramente las cartas para seguir la perspectiva de la mesa */
+            transform: rotateX(10deg);
+            transform-style: preserve-3d;
+        }
+        
+        /* CARTAS GRANDES Y REALISTAS */
+        .carta { 
+            width: 85px;
+            height: 125px; 
+            background: white; 
+            color: black; 
+            border-radius: 8px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: space-between;
+            padding: 6px;
+            font-weight: bold; 
+            font-size: 1.5em; 
+            position: relative; 
+            /* Sombra profunda realista */
+            box-shadow: var(--sombra-cartas); 
+            animation: repartir 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            border: 1px solid #ccc;
+        }
+
+        .carta-oculta {
+             background: linear-gradient(135deg, #333, #1a1a1a);
+             color: #555;
+             border: 2px solid #ddd;
+             display: flex; justify-content: center; align-items: center; font-size: 3em;
+             /* Patrón trasero simple */
+             background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 4px);
+        }
+
+        @keyframes repartir { 
+            from { transform: translateY(-300px) translateZ(100px) rotateY(180deg); opacity: 0; } 
+            to { transform: translateY(0) translateZ(0) rotateY(0); opacity: 1; } 
+        }
+        
+        .rojo { color: #d32f2f; } 
+        .negro { color: #222; }
+        .mini-palo { font-size: 0.6em; display: block; margin-top: -5px;}
+
+        /* MENSAJE FINAL */
+        #mensaje-final {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95); color: var(--oro); padding: 25px 50px;
+            border-radius: 15px; border: 4px solid var(--oro); font-size: 2.2em; font-weight: bold;
+            text-align: center; z-index: 30; text-shadow: 0 2px 5px rgba(0,0,0,1);
+            box-shadow: 0 0 50px rgba(255,215,0,0.5);
+        }
+
+        /* BOTONES INFERIORES */
+        .controles-bottom { 
+            position: fixed; bottom: 0; left: 0; width: 100%; 
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 60%, transparent);
+            padding: 20px 15px; display: none; justify-content: center; gap: 15px; box-sizing: border-box; z-index: 25;
+        }
+
+        .btn-accion { 
+            flex: 1; padding: 18px 0; border-radius: 12px; border: none; font-weight: bold; font-size: 1.2em; 
+            cursor: pointer; display: flex; justify-content: center; align-items: center; text-transform: uppercase;
+            box-shadow: 0 6px 10px rgba(0,0,0,0.4); transition: all 0.1s; border-bottom: 4px solid rgba(0,0,0,0.3);
+        }
+        .btn-accion:active { transform: translateY(2px); border-bottom-width: 2px; }
+        .btn-pedir { background: linear-gradient(to bottom, #007bff, var(--azul-boton)); color: white; }
+        .btn-plantar { background: linear-gradient(to bottom, #dc3545, var(--rojo-boton)); color: white; }
+        .btn-reiniciar { background: linear-gradient(to bottom, var(--oro), #e6c200); color: black; border-bottom: 4px solid #b39700; }
+        .icono-btn { margin-right: 10px; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="saldo" id="miSaldo">$ ...</div>
+        <button class="btn-salir" onclick="location.href='index.html'">Salir</button>
+    </div>
+
+    <div class="main-container">
+        <div id="pantalla-inicio" class="pantalla-apuesta">
+            <h1 style="color: var(--oro); margin: 0 0 10px 0; text-shadow: 2px 2px 5px black;">BLACKJACK VIP</h1>
+            <p style="color: #ccc;">Mesa de Apuestas Altas</p>
+            <input type="number" id="monto-apuesta" value="100" min="100" class="input-apuesta">
+            <br>
+            <button class="btn-jugar" onclick="iniciarMano()">REPARTIR CARTAS</button>
+        </div>
+
+        <div id="mesa-juego" style="display:none;">
+            <div class="zona-jugador-dealer">
+                <div class="puntaje-label" style="background: var(--rojo-boton);">DEALER: <span id="pts-dealer">?</span></div>
+                <div class="zona-cartas" id="cartas-dealer"></div>
+            </div>
+            
+            <div id="mensaje-final" style="display: none;"></div>
+
+            <div class="zona-jugador-dealer" style="margin-top: 40px;">
+                <div class="zona-cartas" id="cartas-jugador"></div>
+                <div class="puntaje-label" style="margin-top: 20px; background: var(--azul-boton);">TÚ: <span id="pts-jugador">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="panel-botones" class="controles-bottom">
+        <button class="btn-accion btn-pedir" onclick="pedirCarta()">
+            <span class="icono-btn">➕</span> PEDIR
+        </button>
+        <button class="btn-accion btn-plantar" onclick="plantarse()">
+            <span class="icono-btn">✋</span> PLANTARME
+        </button>
+    </div>
+
+    <div id="panel-reinicio" class="controles-bottom">
+        <button class="btn-accion btn-reiniciar" onclick="reiniciarJuego()">
+            <span class="icono-btn">🔄</span> JUGAR OTRA VEZ
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g", authDomain: "casino-familia.firebaseapp.com", databaseURL: "https://casino-familia-default-rtdb.firebaseio.com", projectId: "casino-familia", storageBucket: "casino-familia.firebasestorage.app", messagingSenderId: "390973825874", appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b", measurementId: "G-HM3NRTZYT9" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        let usuario = null, saldo = 0, baraja = [], manoJugador = [], manoDealer = [], apuestaActual = 0;
+        const palos = ['♥','♦','♣','♠'], valores = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+        auth.onAuthStateChanged(u => {
+            if(u) {
+                usuario = u;
+                db.ref('usuarios/'+u.uid).on('value', s => {
+                    saldo = s.val().saldo || 0;
+                    document.getElementById('miSaldo').innerText = "$ " + new Intl.NumberFormat('en-US').format(saldo);
+                });
+            } else location.href="index.html";
+        });
+
+        function crearBaraja() {
+            baraja = [];
+            for(let p of palos) {
+                for(let v of valores) {
+                    let peso = parseInt(v);
+                    if(isNaN(peso)) peso = (v==='A') ? 11 : 10;
+                    baraja.push({ valor: v, palo: p, peso: peso, color: (p==='♥'||p==='♦')?'rojo':'negro' });
+                }
+            }
+            baraja.sort(() => Math.random() - 0.5);
+        }
+
+        function iniciarMano() {
+            apuestaActual = parseInt(document.getElementById('monto-apuesta').value);
+            if(saldo < apuestaActual) return alert("Saldo insuficiente");
+            db.ref('usuarios/'+usuario.uid).update({saldo: saldo - apuestaActual});
+            document.getElementById('pantalla-inicio').style.display = 'none';
+            document.getElementById('mesa-juego').style.display = 'block';
+            document.getElementById('panel-botones').style.display = 'flex';
+            document.getElementById('mensaje-final').style.display = 'none';
+            crearBaraja();
+            manoJugador = [sacar(), sacar()];
+            manoDealer = [sacar(), sacar()];
+            renderMesa(false);
+            checkBlackjack();
+        }
+
+        function sacar() { return baraja.pop(); }
+        function calcularPuntos(mano) {
+            let puntos = mano.reduce((a, b) => a + b.peso, 0);
+            let ases = mano.filter(c => c.valor === 'A').length;
+            while(puntos > 21 && ases > 0) { puntos -= 10; ases--; }
+            return puntos;
+        }
+
+        function renderCarta(c, oculta=false) {
+            if(oculta) return `<div class="carta carta-oculta">?</div>`;
+            return `<div class="carta ${c.color}">
+                        <div style="align-self: flex-start; line-height: 1;"><span style="font-size:0.8em">${c.valor}</span><span class="mini-palo">${c.palo}</span></div>
+                        <div style="font-size: 2em;">${c.palo}</div>
+                        <div style="align-self: flex-end; line-height: 1; transform: rotate(180deg);"><span style="font-size:0.8em">${c.valor}</span><span class="mini-palo">${c.palo}</span></div>
+                    </div>`;
+        }
+
+        function renderMesa(mostrarDealer) {
+            document.getElementById('cartas-jugador').innerHTML = manoJugador.map(c => renderCarta(c)).join('');
+            document.getElementById('pts-jugador').innerText = calcularPuntos(manoJugador);
+            if(mostrarDealer) {
+                document.getElementById('cartas-dealer').innerHTML = manoDealer.map(c => renderCarta(c)).join('');
+                document.getElementById('pts-dealer').innerText = calcularPuntos(manoDealer);
+            } else {
+                document.getElementById('cartas-dealer').innerHTML = renderCarta(manoDealer[0]) + renderCarta(null, true);
+                document.getElementById('pts-dealer').innerText = "?";
+            }
+        }
+
+        function pedirCarta() {
+            manoJugador.push(sacar());
+            renderMesa(false);
+            if(calcularPuntos(manoJugador) > 21) finalizarJuego("TE PASASTE 💥");
+        }
+
+        function plantarse() {
+            let ptsD = calcularPuntos(manoDealer);
+            while(ptsD < 17) {
+                manoDealer.push(sacar());
+                ptsD = calcularPuntos(manoDealer);
+            }
+            determinarGanador();
+        }
+
+        function determinarGanador() {
+            renderMesa(true);
+            let pJ = calcularPuntos(manoJugador), pD = calcularPuntos(manoDealer);
+            if(pD > 21) finalizarJuego("DEALER SE PASÓ 🤑", 2);
+            else if(pJ > pD) finalizarJuego("¡GANASTE! 🏆", 2);
+            else if(pJ === pD) finalizarJuego("EMPATE 🤝", 1);
+            else finalizarJuego("LA CASA GANA 😢", 0);
+        }
+
+        function checkBlackjack() {
+            if(calcularPuntos(manoJugador) === 21) {
+                renderMesa(true);
+                finalizarJuego("¡BLACKJACK! ♠️", 2.5);
+            }
+        }
+
+        function finalizarJuego(msg, multiplicador=0) {
+            const msgDiv = document.getElementById('mensaje-final');
+            msgDiv.innerText = msg;
+            msgDiv.style.display = 'block';
+            document.getElementById('panel-botones').style.display = 'none';
+            document.getElementById('panel-reinicio').style.display = 'flex';
+            if(multiplicador > 0) {
+                db.ref('usuarios/'+usuario.uid).update({saldo: saldo + (apuestaActual * multiplicador)});
+                if(window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance("Ganaste"));
+            }
+        }
+
+        function reiniciarJuego() {
+             document.getElementById('panel-reinicio').style.display = 'none';
+             document.getElementById('mesa-juego').style.display = 'none';
+             document.getElementById('pantalla-inicio').style.display = 'block';
+             document.getElementById('mensaje-final').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

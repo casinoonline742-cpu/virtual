@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Carrera de Caballos - Casino</title>
+    <style>
+        /* --- ESTILOS GENERALES (Tema Dark Casino) --- */
+        /* Usamos 100vh para ocupar toda la altura de la pantalla y flex column para organizar */
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: #05131a;
+            color: white;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            text-align: center;
+            height: 100vh; /* Ocupar toda la pantalla */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Evitar scroll */
+        }
+        
+        /* HEADER (Fijo arriba) */
+        .top-bar { background: #000; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #FFD700; flex-shrink: 0; }
+        .saldo { color: #00e676; font-weight: bold; font-family: monospace; font-size: 1.2em; }
+        .btn-salir { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; }
+
+        /* ZONA DE PISTA (Flexible: Ocupa el espacio central) */
+        .pista-wrapper {
+            flex: 1; /* Toma todo el espacio sobrante */
+            padding: 5px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 0; /* Importante para que flex funcione bien en móviles */
+        }
+        
+        .titulo-pista { color: gold; margin: 5px 0; font-size: 1.2em; text-shadow: 0 0 10px rgba(255,215,0,0.5); flex-shrink: 0; }
+        
+        .pista-container {
+            background: #2e7d32;
+            border: 3px solid #1b5e20;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+            flex: 1; /* Ocupa toda la altura del wrapper */
+            display: flex;
+            flex-direction: column; /* Para apilar carriles */
+        }
+
+        .meta-line {
+            position: absolute;
+            right: 8%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: repeating-linear-gradient(0deg, white, white 5px, black 5px, black 10px);
+            z-index: 0;
+            opacity: 0.7;
+        }
+
+        /* CARRILES FLEXIBLES */
+        .carril {
+            flex: 1; /* Cada carril toma 1/4 del espacio vertical disponible */
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            position: relative;
+            /* Usamos un tamaño de fuente relativo a la altura de la pantalla para que los iconos escalen */
+            font-size: min(4vh, 30px); 
+        }
+        .carril:last-child { border-bottom: none; }
+
+        .caballo {
+            font-size: 1.8em; /* El icono es casi el doble del tamaño base del carril */
+            position: absolute;
+            left: 2%;
+            top: 50%;
+            /* Centrar verticalmente y voltear el icono para que mire a la derecha */
+            transform: translateY(-50%) scaleX(-1);
+            transition: left 0.1s linear;
+            z-index: 10;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+        }
+
+        .numero-caballo {
+            font-size: 0.4em;
+            background: black;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 4px;
+            position: absolute;
+            top: -5px;
+            right: 5px;
+            z-index: 11;
+            transform: scaleX(-1); /* Des-voltear número */
+            border: 1px solid white;
+            font-weight: bold;
+        }
+
+        /* PANEL DE APUESTAS (Fijo abajo en el flujo flex) */
+        .panel-apuestas {
+            background: #0f2027;
+            padding: 10px;
+            border-top: 2px solid #FFD700;
+            /* Ya no es fixed, es parte del flujo flex al final */
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+        }
+
+        .titulo-panel { text-align: left; color: #aaa; font-size: 0.8em; margin-bottom: 2px; }
+
+        .grid-caballos {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+
+        .btn-select {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        .btn-select:active { transform: scale(0.98); }
+        
+        .btn-select.activo {
+            background: linear-gradient(45deg, #FFD700, #ffca28);
+            color: black;
+            border-color: white;
+            font-weight: bold;
+        }
+
+        /* Input y Botón Compactos */
+        .controles-fila { display: flex; gap: 5px; margin-top: 5px; }
+        
+        .input-monto {
+            flex: 1;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #555;
+            color: #00e676;
+            font-size: 1.1em;
+            text-align: center;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .btn-correr {
+            flex: 1.5;
+            background: radial-gradient(circle, #d50000, #b71c1c);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .btn-correr:disabled { filter: grayscale(1); opacity: 0.6; }
+
+        .cuota-badge { background: #333; color: #ccc; padding: 1px 5px; border-radius: 4px; font-size: 0.8em; }
+        .btn-select.activo .cuota-badge { background: black; color: gold; }
+
+        /* OVERLAY GANADOR */
+        #ganador-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="saldo" id="miSaldo">...</div>
+        <div class="btn-salir" onclick="salirSinCerrar()">Salir</div>
+    </div>
+
+    <div class="pista-wrapper">
+        <h2 class="titulo-pista">🏁 TURF CASINO 🏁</h2>
+        <div class="pista-container" id="contenedor-pista">
+            </div>
+    </div>
+
+    <div class="panel-apuestas">
+        <div class="titulo-panel">ELIGE GANE:</div>
+        <div class="grid-caballos" id="lista-caballos">
+            </div>
+
+        <div class="controles-fila">
+            <input type="number" id="montoApuesta" class="input-monto" placeholder="$ Apuesta" inputmode="numeric">
+            <button id="btn-iniciar" class="btn-correr" onclick="iniciarCarrera()">¡ARRANCAN!</button>
+        </div>
+    </div>
+
+    <div id="ganador-overlay">
+        <div style="font-size: 5em;">🏆</div>
+        <h2 style="color:white; margin:10px;">GANÓ EL CABALLO</h2>
+        <h1 style="color:gold; font-size: 2.5em; margin: 5px 0;" id="win-name">...</h1>
+        <h1 style="color:#00e676; margin-top:10px;" id="win-monto">...</h1>
+        <br>
+        <button class="btn-salir" style="font-size:1.1em; padding:12px 30px; background: #0277bd; border:none;" onclick="cerrarOverlay()">CONTINUAR</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g", 
+            authDomain: "casino-familia.firebaseapp.com",
+            databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+            projectId: "casino-familia",
+            storageBucket: "casino-familia.firebasestorage.app",
+            messagingSenderId: "390973825874",
+            appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // --- CAMBIO AQUÍ: TODOS SON CABALLOS (🏇) ---
+        const CABALLOS = [
+            { id: 1, nombre: "Relámpago", icono: "🏇", color: "#d32f2f", cuota: 2.0 }, 
+            { id: 2, nombre: "Tornado", icono: "🏇", color: "#1976d2", cuota: 3.5 },
+            { id: 3, nombre: "Diablo", icono: "🏇", color: "#388e3c", cuota: 5.0 },
+            { id: 4, nombre: "Sombra", icono: "🏇", color: "#fbc02d", cuota: 10.0 } 
+        ];
+
+        let usuario = null;
+        let saldoActual = 0;
+        let caballoSeleccionado = null;
+        let carreraEnCurso = false;
+
+        auth.onAuthStateChanged(u => {
+            if(u) {
+                usuario = u;
+                db.ref('usuarios/'+u.uid+'/saldo').on('value', s => {
+                    saldoActual = s.val() || 0;
+                    document.getElementById('miSaldo').innerText = "$ " + saldoActual.toLocaleString();
+                });
+                renderizarJuego();
+            } else {
+                location.href = "index.html";
+            }
+        });
+
+        function renderizarJuego() {
+            const pista = document.getElementById('contenedor-pista');
+            const lista = document.getElementById('lista-caballos');
+            
+            pista.innerHTML = '<div class="meta-line"></div>'; 
+            lista.innerHTML = '';
+
+            CABALLOS.forEach(c => {
+                // Pista
+                let carril = document.createElement('div');
+                carril.className = 'carril';
+                carril.innerHTML = `
+                    <div class="caballo" id="caballo-${c.id}" style="left: 2%;">
+                        <span class="numero-caballo" style="background:${c.color}">${c.id}</span>
+                        ${c.icono}
+                    </div>
+                `;
+                pista.appendChild(carril);
+
+                // Botón de selección
+                let btn = document.createElement('div');
+                btn.className = 'btn-select';
+                btn.id = `btn-sel-${c.id}`;
+                btn.onclick = () => seleccionarCaballo(c.id);
+                btn.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="background:${c.color}; width:18px; height:18px; border-radius:50%; display:inline-block; text-align:center; font-size:11px; line-height:18px; color:white; font-weight:bold;">${c.id}</span>
+                        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.nombre}</span>
+                    </div>
+                    <div class="cuota-badge">x${c.cuota}</div>
+                `;
+                lista.appendChild(btn);
+            });
+        }
+
+        function seleccionarCaballo(id) {
+            if(carreraEnCurso) return;
+            caballoSeleccionado = id;
+            document.querySelectorAll('.btn-select').forEach(b => b.classList.remove('activo'));
+            document.getElementById(`btn-sel-${id}`).classList.add('activo');
+            if(navigator.vibrate) navigator.vibrate(20);
+        }
+
+        // Lógica de probabilidad ponderada (igual que antes)
+        function obtenerGanadorPorProbabilidad() {
+            let pesos = CABALLOS.map(c => 1 / c.cuota);
+            let totalPeso = pesos.reduce((a, b) => a + b, 0);
+            let random = Math.random() * totalPeso;
+            let acumulado = 0;
+            for (let i = 0; i < CABALLOS.length; i++) {
+                acumulado += pesos[i];
+                if (random < acumulado) return CABALLOS[i].id;
+            }
+            return CABALLOS[0].id;
+        }
+
+        function iniciarCarrera() {
+            const montoInput = document.getElementById('montoApuesta');
+            const monto = parseInt(montoInput.value);
+
+            if(!caballoSeleccionado) return alert("⚠️ Selecciona un caballo.");
+            if(!monto || monto <= 0) return alert("⚠️ Ingresa un monto válido.");
+            if(monto > saldoActual) return alert("⚠️ Saldo insuficiente.");
+
+            db.ref('usuarios/'+usuario.uid+'/saldo').set(saldoActual - monto);
+            carreraEnCurso = true;
+            document.getElementById('btn-iniciar').disabled = true;
+            montoInput.disabled = true;
+
+            const idGanadorDesignado = obtenerGanadorPorProbabilidad();
+
+            let progreso = {}; 
+            CABALLOS.forEach(c => progreso[c.id] = 2); 
+            let intervalo;
+
+            if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+            intervalo = setInterval(() => {
+                let alguienCruzo = false;
+                CABALLOS.forEach(c => {
+                    let avance = (Math.random() * 1.7) + 0.3;
+                    if (c.id === idGanadorDesignado) avance += 0.25;
+                    if (Math.random() > 0.95) avance += 1.5;
+                    if (Math.random() < 0.05) avance -= 0.5;
+
+                    progreso[c.id] += avance;
+                    // Tope visual 91% para que no se corten los caballos
+                    document.getElementById(`caballo-${c.id}`).style.left = Math.min(progreso[c.id], 91) + '%';
+                    if(progreso[c.id] >= 90) alguienCruzo = true;
+                });
+
+                if(alguienCruzo) {
+                    let ganadorReal = CABALLOS.reduce((prev, curr) => (progreso[prev.id] > progreso[curr.id]) ? prev : curr);
+                    finalizarCarrera(ganadorReal.id, monto, intervalo);
+                }
+            }, 50);
+        }
+
+        function finalizarCarrera(idGanador, monto, intervalo) {
+            clearInterval(intervalo);
+            setTimeout(() => {
+                const caballoWin = CABALLOS.find(c => c.id === idGanador);
+                const ganaste = (idGanador === caballoSeleccionado);
+                
+                document.getElementById('win-name').innerText = "#" + idGanador + " " + caballoWin.nombre;
+                if(ganaste) {
+                    const premio = Math.floor(monto * caballoWin.cuota);
+                    document.getElementById('win-monto').innerText = "+ $" + premio.toLocaleString();
+                    document.getElementById('win-monto').style.color = "#00e676";
+                    db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + premio);
+                    if(navigator.vibrate) navigator.vibrate([100,50,100,50,500]);
+                } else {
+                    document.getElementById('win-monto').innerText = "- $" + monto.toLocaleString();
+                    document.getElementById('win-monto').style.color = "#e53935";
+                }
+                document.getElementById('ganador-overlay').style.display = 'flex';
+            }, 800);
+        }
+
+        function cerrarOverlay() {
+            document.getElementById('ganador-overlay').style.display = 'none';
+            CABALLOS.forEach(c => { document.getElementById(`caballo-${c.id}`).style.left = '2%'; });
+            carreraEnCurso = false;
+            document.getElementById('btn-iniciar').disabled = false;
+            document.getElementById('montoApuesta').disabled = false;
+            document.getElementById('montoApuesta').value = '';
+        }
+
+        function salirSinCerrar() {
+            window.location.href = "index.html"; 
+        }
+    </script>
+</body>
+</html>

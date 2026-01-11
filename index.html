@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casino Virtual - Android Style</title>
+    <style>
+        :root {
+            --android-bg: #121212;
+            --surface: #1e1e1e;
+            --primary-neon: #03dac6;
+            --text-sec: #b0b0b0;
+            --gold: #FFD700;
+        }
+
+        body { 
+            background-color: var(--android-bg); 
+            font-family: 'Roboto', sans-serif; 
+            color: white; 
+            margin: 0; 
+            padding: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+
+        .container { width: 100%; max-width: 450px; }
+
+        /* --- PANTALLAS --- */
+        .pantalla { display: none; animation: fadeIn 0.4s ease-out; }
+        .activa { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- LOGIN STYLE --- */
+        .login-header { text-align: center; margin-bottom: 30px; }
+        input { 
+            width: 100%; padding: 14px; margin: 8px 0; border-radius: 8px; 
+            border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; 
+        }
+        .btn-main { 
+            width: 100%; padding: 14px; margin-top: 10px; border-radius: 8px; border: none; 
+            font-weight: bold; cursor: pointer; background: var(--gold); color: black; 
+        }
+
+        /* --- LOBBY: TARJETA DE SALDO (Olla de Oro) --- */
+        .user-card {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            border-radius: 16px; padding: 20px; margin-bottom: 16px;
+            position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+        .user-email { font-size: 13px; opacity: 0.9; margin-bottom: 10px; display: block; }
+        .balance-label { font-size: 11px; font-weight: bold; letter-spacing: 1px; }
+        .balance-amount { font-size: 32px; font-weight: bold; display: block; margin-top: 5px; }
+        .pot-icon { position: absolute; right: 20px; bottom: 15px; font-size: 40px; opacity: 0.8; }
+
+        /* --- BANNER RECARGA --- */
+        .banner-recarga {
+            background: #2c2c2c; color: var(--gold); padding: 12px; border-radius: 8px;
+            margin-bottom: 16px; text-align: center; font-size: 13px; cursor: pointer;
+            border: 1px solid #444; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        /* --- GRID DE JUEGOS --- */
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        
+        .game-item {
+            background-color: var(--surface); aspect-ratio: 1 / 1; border-radius: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-decoration: none; color: white; border: 1px solid #2c2c2c;
+            transition: transform 0.1s; cursor: pointer;
+        }
+        .game-item:active { transform: scale(0.95); background: #252525; }
+        
+        /* Ajuste para iconos normales (Emoji) */
+        .game-item span.emoji { font-size: 40px; margin-bottom: 10px; }
+        
+        /* Ajuste para iconos SVG (Ruleta y Slots) */
+        .game-item svg { width: 50px; height: 50px; margin-bottom: 10px; fill: var(--gold); }
+        
+        .game-item b { font-size: 12px; letter-spacing: 1px; }
+
+        .game-full {
+            grid-column: span 2;
+            aspect-ratio: auto;
+            padding: 20px;
+            background: linear-gradient(45deg, #1e1e1e, #2a2a2a);
+            border: 1px solid var(--gold);
+        }
+
+        /* --- ADMIN & OTROS --- */
+        .admin-tag { background: black; color: var(--gold); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; position: absolute; top: 20px; right: 20px; }
+        .btn-danger { background: transparent; color: #ff5252; border: 1px solid #ff5252; width: 100%; padding: 12px; border-radius: 8px; margin-top: 20px; cursor: pointer; }
+        #panel-admin { background: #1a1a1a; padding: 15px; border-radius: 12px; margin-top: 25px; border: 1px dashed #444; }
+        .error { color: #ff5252; font-size: 12px; text-align: center; margin-top: 10px; }
+
+        /* --- POPUP BIENVENIDA --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center;
+            animation: fadeIn 0.3s;
+        }
+        .modal-box {
+            background: #1e1e1e; padding: 25px; border-radius: 15px; border: 2px solid var(--gold);
+            text-align: center; max-width: 300px; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div id="pantalla-login" class="pantalla activa">
+        <div class="login-header">
+            <h1 style="color: var(--gold); margin-bottom: 5px;">🎰 CASINO</h1>
+            <p style="color: var(--text-sec); margin-top: 0;">Bienvenido de nuevo</p>
+        </div>
+        <input type="email" id="email" placeholder="Correo electrónico">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button class="btn-main" onclick="iniciarSesion()">ENTRAR</button>
+        <button class="btn-main" style="background:#333; color:white;" onclick="registrarUsuario()">CREAR CUENTA</button>
+        <p style="text-align:center; font-size: 13px; color: var(--gold); cursor:pointer;" onclick="recuperarClave()">¿Olvidaste tu contraseña?</p>
+        <p id="mensajeError" class="error"></p>
+    </div>
+
+    <div id="pantalla-lobby" class="pantalla">
+        <div class="user-card">
+            <span id="etiquetaAdmin" class="admin-tag" style="display:none;">ADMIN</span>
+            <span id="nombreUsuario" class="user-email">cargando...</span>
+            <span class="balance-label">SALDO DISPONIBLE</span>
+            <span id="textoSaldo" class="balance-amount">$ 0</span>
+            <span class="pot-icon">🎰</span> 
+        </div>
+
+        <div class="banner-recarga" onclick="window.open('https://wa.me/573204491926?text=Hola,%20quiero%20recargar%20saldo', '_blank')">
+            💰 ¿Necesitas saldo? <b>Toca aquí para WhatsApp</b>
+        </div>
+
+        <div class="menu-grid">
+            <div class="game-item" onclick="irAlJuego('bingo.html')">
+                <span class="emoji">🎱</span><b>BINGO</b>
+            </div>
+
+            <div class="game-item" onclick="irAlJuego('ruleta.html')">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#FFD700"/>
+                    <path d="M12 4V2M12 22v-2M4 12H2m20 0h-2M6.34 6.34L4.93 4.93m14.14 14.14l-1.41-1.41M6.34 17.66L4.93 19.07m14.14-14.14l-1.41 1.41" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="12" cy="12" r="3" fill="#FFD700"/>
+                    <circle cx="12" cy="12" r="1" fill="#000"/>
+                </svg>
+                <b>RULETA</b>
+            </div>
+
+            <div class="game-item" onclick="irAlJuego('blackjack.html')">
+                <span class="emoji">🃏</span><b>BLACKJACK</b>
+            </div>
+
+            <div class="game-item" onclick="irAlJuego('tragamonedas.html')">
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm0 2v14h14V5H5zm16 4h1v6h-1V9z" fill="#FFD700"/>
+                    <rect x="7" y="8" width="10" height="8" rx="1" fill="#333"/>
+                    <text x="8" y="14" fill="#00e676" font-size="6" font-weight="bold" font-family="monospace">777</text>
+                    <circle cx="12" cy="18" r="1" fill="#FFD700"/>
+                </svg>
+                <b>TRAGA MONEDAS</b>
+            </div>
+
+            <div class="game-item game-full" onclick="irAlJuego('caballos.html')">
+                <span class="emoji">🏇</span><b>CARRERA DE CABALLOS</b>
+            </div>
+        </div>
+
+        <button class="btn-danger" onclick="cerrarSesion()">CERRAR SESIÓN</button>
+
+        <div id="panel-admin" style="display:none;">
+            <h3 style="color: var(--gold); margin-top:0;">👑 Panel de Control</h3>
+            <input type="text" id="uidRecarga" placeholder="ID del Usuario">
+            <input type="number" id="montoRecarga" placeholder="Monto">
+            <button class="btn-main" onclick="recargarSaldo()">ENVIAR RECARGA</button>
+            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+            <ul id="listaUsuarios" style="list-style:none; padding:0; font-size:12px; color:#aaa;"></ul>
+        </div>
+    </div>
+
+</div>
+
+<div id="modal-bienvenida" class="modal-overlay">
+    <div class="modal-box">
+        <h1 style="font-size: 50px; margin: 0;">🎁</h1>
+        <h2 style="color: var(--gold); margin: 10px 0;">¡BONO RECIBIDO!</h2>
+        <p style="font-size: 1.1em; line-height: 1.5;">
+            Te damos un bono de bienvenida de <b style="color:#00e676;">$500</b> para que empieces a jugar.
+        </p>
+        <hr style="border-color:#333; margin: 15px 0;">
+        <p style="color: #ff5252; font-size: 0.9em;">
+            ⚠️ Recuerda que el retiro mínimo es de <b>$1000 pesos</b>.
+        </p>
+        <button class="btn-main" onclick="cerrarBienvenida()">¡A JUGAR!</button>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
+        authDomain: "casino-familia.firebaseapp.com",
+        databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+        projectId: "casino-familia",
+        storageBucket: "casino-familia.firebasestorage.app",
+        messagingSenderId: "390973825874",
+        appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+    };
+
+    const CORREO_ADMIN = "jorgemanuelp92@hotmail.com";
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            mostrarPantalla('pantalla-lobby');
+            cargarDatosUsuario(user);
+        } else {
+            mostrarPantalla('pantalla-login');
+        }
+    });
+
+    function registrarUsuario() {
+        const email = document.getElementById('email').value.trim();
+        const pass = document.getElementById('password').value;
+        if(!email || !pass) return;
+        
+        auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
+            db.ref('usuarios/' + cred.user.uid).set({ 
+                email: email, 
+                saldo: 500 
+            });
+            document.getElementById('modal-bienvenida').style.display = 'flex';
+        }).catch(e => document.getElementById('mensajeError').innerText = e.message);
+    }
+
+    function cerrarBienvenida() {
+        document.getElementById('modal-bienvenida').style.display = 'none';
+    }
+
+    function iniciarSesion() {
+        const email = document.getElementById('email').value.trim();
+        const pass = document.getElementById('password').value;
+        auth.signInWithEmailAndPassword(email, pass).catch(e => document.getElementById('mensajeError').innerText = e.message);
+    }
+
+    function cerrarSesion() { auth.signOut(); }
+
+    function cargarDatosUsuario(user) {
+        document.getElementById('nombreUsuario').innerText = user.email;
+        db.ref('usuarios/' + user.uid).on('value', (snap) => {
+            const val = snap.val();
+            if(val) {
+                const money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val.saldo || 0);
+                document.getElementById('textoSaldo').innerText = money;
+            }
+        });
+
+        if(user.email.toLowerCase() === CORREO_ADMIN.toLowerCase()) {
+            document.getElementById('panel-admin').style.display = "block";
+            document.getElementById('etiquetaAdmin').style.display = "block";
+            activarListaUsuarios();
+        }
+    }
+
+    function activarListaUsuarios() {
+        db.ref('usuarios').on('value', (snap) => {
+            const lista = document.getElementById('listaUsuarios');
+            lista.innerHTML = "";
+            snap.forEach(child => {
+                const u = child.val();
+                const li = document.createElement('li');
+                li.style.padding = "8px 0"; li.style.borderBottom = "1px solid #222";
+                li.innerHTML = `<b>${u.email}</b><br>Saldo: $${u.saldo} <br>
+                <small style="color:var(--gold); cursor:pointer" onclick="document.getElementById('uidRecarga').value='${child.key}'">[Copiar ID]</small>`;
+                lista.appendChild(li);
+            });
+        });
+    }
+
+    function recargarSaldo() {
+        const uid = document.getElementById('uidRecarga').value;
+        const monto = parseInt(document.getElementById('montoRecarga').value);
+        if(!uid || !monto) return;
+        db.ref('usuarios/' + uid).once('value').then(s => {
+            if(s.exists()){
+                db.ref('usuarios/' + uid).update({ saldo: (s.val().saldo || 0) + monto });
+                alert("OK");
+            }
+        });
+    }
+
+    function mostrarPantalla(id) {
+        document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+        document.getElementById(id).classList.add('activa');
+    }
+
+    function irAlJuego(url) { window.location.href = url; }
+</script>
+</body>
+</html>

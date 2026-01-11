@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tragamonedas Casino</title>
+    <style>
+        /* --- ESTILOS VISUALES --- */
+        body {
+            background-color: #0a3d0f;
+            background-image: radial-gradient(circle, #1a5e20 0%, #052008 100%);
+            color: white; font-family: 'Segoe UI', sans-serif;
+            text-align: center; margin: 0; padding: 0;
+            user-select: none; overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        /* HEADER */
+        .top-bar {
+            background: #111; padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px solid #d4af37; box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+        .saldo { color: #00e676; font-family: monospace; font-size: 1.4em; font-weight: bold; }
+        .btn-salir { background: #333; color: #fff; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.8em; }
+
+        /* JUEGO */
+        .game-container {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 10px;
+        }
+
+        .slot-machine {
+            position: relative; padding: 20px; border-radius: 20px;
+            background: linear-gradient(135deg, #d4af37 0%, #b38f00 100%);
+            box-shadow: 0 0 40px rgba(0,0,0,0.9), inset 0 0 15px rgba(255,255,255,0.4);
+            border: 5px solid #8c6b00; max-width: 400px; width: 100%;
+        }
+
+        /* LUCES */
+        .lights-strip {
+            position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border: 2px dashed rgba(255,255,0,0.5); border-radius: 25px; pointer-events: none;
+            animation: borderFlash 2s infinite;
+        }
+        @keyframes borderFlash { 0%,100% { border-color: rgba(255,215,0,0.3); } 50% { border-color: rgba(255,215,0,1); } }
+
+        /* CARRETES */
+        .reels-container {
+            display: flex; gap: 8px; background: #000; padding: 10px;
+            border-radius: 10px; box-shadow: inset 0 0 25px black;
+        }
+
+        .reel {
+            flex: 1; height: 140px; background: #eee;
+            border-radius: 5px; border: 2px solid #444; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: inset 0 10px 15px rgba(0,0,0,0.6), inset 0 -10px 15px rgba(0,0,0,0.6);
+            transition: transform 0.1s;
+        }
+
+        .symbol { font-size: 4em; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3)); }
+
+        /* EFECTO DE GIRO (BLUR) */
+        .moviendo .symbol {
+            animation: blurEffect 0.1s infinite;
+            filter: blur(5px);
+            transform: scale(0.9);
+        }
+        @keyframes blurEffect { 
+            0% { transform: translateY(-10px) scale(0.9); } 
+            50% { transform: translateY(10px) scale(0.9); } 
+            100% { transform: translateY(-10px) scale(0.9); } 
+        }
+
+        /* TABLA DE PAGOS FLOTANTE */
+        .paytable {
+            background: rgba(0,0,0,0.6); border-radius: 10px; padding: 5px 10px;
+            margin-bottom: 10px; font-size: 0.8em; color: #ddd; display: flex; gap: 10px;
+        }
+        .pay-item { display: flex; align-items: center; gap: 5px; }
+
+        /* CONTROLES */
+        .controls {
+            display: flex; gap: 15px; margin-top: 25px; width: 100%; max-width: 400px;
+            align-items: stretch; height: 70px;
+        }
+
+        .btn-bet {
+            flex: 1; background: linear-gradient(to bottom, #444, #222);
+            border: 2px solid #666; color: white; border-radius: 10px;
+            font-weight: bold; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer;
+        }
+        .btn-bet span { font-size: 0.8em; color: #aaa; }
+        .val-apuesta { font-size: 1.2em; color: gold; }
+
+        .btn-spin {
+            flex: 1.5; background: linear-gradient(to bottom, #ffeb3b, #fbc02d);
+            border: 2px solid #fff; border-radius: 10px;
+            color: #3e2723; font-size: 1.5em; font-weight: 900;
+            text-transform: uppercase; cursor: pointer;
+            box-shadow: 0 5px 0 #bf9000, 0 10px 10px rgba(0,0,0,0.5);
+            transition: 0.1s;
+        }
+        .btn-spin:active { transform: translateY(5px); box-shadow: 0 0 0 #bf9000; }
+        .btn-spin:disabled { filter: grayscale(1); cursor: not-allowed; transform: translateY(5px); box-shadow: none; }
+
+        /* POPUP GANADOR */
+        #aviso-win {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            background: rgba(0,0,0,0.95); border: 4px solid #00e676; padding: 30px;
+            border-radius: 20px; z-index: 200; text-align: center; pointer-events: none;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #aviso-win.mostrar { transform: translate(-50%, -50%) scale(1); }
+
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="saldo" id="miSaldo">$ --</div>
+        <a href="index.html" class="btn-salir">Volver</a>
+    </div>
+
+    <div class="game-container">
+        
+        <div class="paytable">
+            <div class="pay-item">🍒 x5</div>
+            <div class="pay-item">🔔 x20</div>
+            <div class="pay-item">7️⃣ x100</div>
+        </div>
+
+        <div class="slot-machine">
+            <div class="lights-strip"></div>
+            
+            <div class="reels-container">
+                <div class="reel" id="carr1"><div class="symbol">7️⃣</div></div>
+                <div class="reel" id="carr2"><div class="symbol">7️⃣</div></div>
+                <div class="reel" id="carr3"><div class="symbol">7️⃣</div></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="btn-bet" onclick="cambiarApuesta()">
+                <span>APUESTA</span>
+                <div class="val-apuesta" id="txt-apuesta">$100</div>
+            </div>
+            <button id="btn-jugar" class="btn-spin" onclick="iniciarGiro()">GIRAR</button>
+        </div>
+
+    </div>
+
+    <div id="aviso-win">
+        <h1 style="color:#00e676; margin:0; text-shadow: 0 0 10px #00e676;">¡GANASTE!</h1>
+        <h2 style="color:white; margin:10px 0;">+$<span id="win-amount">0</span></h2>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // 1. CONFIGURACIÓN (TUS CREDENCIALES)
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
+            authDomain: "casino-familia.firebaseapp.com",
+            databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+            projectId: "casino-familia",
+            storageBucket: "casino-familia.firebasestorage.app",
+            messagingSenderId: "390973825874",
+            appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // 2. LÓGICA DEL JUEGO
+        let usuario = null;
+        let saldo = 0;
+        let apuestaActual = 100;
+        const apuestasDisponibles = [100, 500, 1000, 5000];
+        let enJuego = false;
+
+        // Símbolos y probabilidades (A más veces aparece, más fácil salir)
+        // 7 es difícil, Cereza es fácil.
+        const poolSimbolos = [
+            '🍒','🍒','🍒','🍒','🍒','🍒',
+            '🍋','🍋','🍋','🍋','🍋',
+            '🍇','🍇','🍇','🍇',
+            '🔔','🔔','🔔',
+            '💎','💎',
+            '7️⃣'
+        ];
+
+        // 3. CONEXIÓN USUARIO
+        auth.onAuthStateChanged(u => {
+            if(u) {
+                usuario = u;
+                db.ref('usuarios/'+u.uid).on('value', snap => {
+                    saldo = snap.val().saldo || 0;
+                    document.getElementById('miSaldo').innerText = "$ " + saldo.toLocaleString();
+                });
+            } else {
+                location.href = "index.html"; // Volver si no hay login
+            }
+        });
+
+        // 4. FUNCIONES DE JUEGO
+        function cambiarApuesta() {
+            if(enJuego) return;
+            // Rotar apuesta
+            let idx = apuestasDisponibles.indexOf(apuestaActual);
+            idx = (idx + 1) % apuestasDisponibles.length;
+            apuestaActual = apuestasDisponibles[idx];
+            document.getElementById('txt-apuesta').innerText = "$" + apuestaActual;
+        }
+
+        async function iniciarGiro() {
+            if(enJuego) return;
+            if(saldo < apuestaActual) return alert("No tienes saldo suficiente.");
+
+            enJuego = true;
+            document.getElementById('btn-jugar').disabled = true;
+
+            // 1. DESCONTAR SALDO
+            await db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - apuestaActual });
+
+            // 2. ANIMACIÓN DE GIRO (Aquí hacemos que se mueva)
+            const c1 = animarCarrete('carr1', 2000); // Para a los 2 seg
+            const c2 = animarCarrete('carr2', 2500); // Para a los 2.5 seg
+            const c3 = animarCarrete('carr3', 3000); // Para a los 3 seg
+
+            // 3. GENERAR RESULTADO FINAL
+            const res1 = simboloRandom();
+            const res2 = simboloRandom();
+            const res3 = simboloRandom();
+
+            // Esperar a que terminen de girar
+            await c1; fijarSimbolo('carr1', res1);
+            await c2; fijarSimbolo('carr2', res2);
+            await c3; fijarSimbolo('carr3', res3);
+
+            // 4. VERIFICAR GANANCIA
+            verificarPremio(res1, res2, res3);
+
+            enJuego = false;
+            document.getElementById('btn-jugar').disabled = false;
+        }
+
+        function animarCarrete(id, duracion) {
+            return new Promise(resolve => {
+                const el = document.getElementById(id);
+                el.classList.add('moviendo'); // Activa el efecto borroso CSS
+                
+                // Cambiar el emoji muy rápido para que parezca que giran
+                const intervalo = setInterval(() => {
+                    el.innerHTML = `<div class="symbol">${simboloRandom()}</div>`;
+                }, 80); // Cada 80ms cambia
+
+                // Detener animación
+                setTimeout(() => {
+                    clearInterval(intervalo);
+                    el.classList.remove('moviendo');
+                    resolve();
+                }, duracion);
+            });
+        }
+
+        function fijarSimbolo(id, simbolo) {
+            const el = document.getElementById(id);
+            el.innerHTML = `<div class="symbol">${simbolo}</div>`;
+            // Efecto de rebote final (opcional)
+            if(navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function simboloRandom() {
+            const rand = Math.floor(Math.random() * poolSimbolos.length);
+            return poolSimbolos[rand];
+        }
+
+        function verificarPremio(s1, s2, s3) {
+            let multiplicador = 0;
+
+            // CASO: TRES IGUALES (JACKPOT)
+            if(s1 === s2 && s2 === s3) {
+                if(s1 === '7️⃣') multiplicador = 100;
+                else if(s1 === '💎') multiplicador = 50;
+                else if(s1 === '🔔') multiplicador = 20;
+                else if(s1 === '🍇') multiplicador = 15;
+                else if(s1 === '🍋') multiplicador = 10;
+                else if(s1 === '🍒') multiplicador = 5;
+            }
+            // CASO: DOS CEREZAS (Consuelo)
+            else {
+                let cerezas = 0;
+                if(s1 === '🍒') cerezas++;
+                if(s2 === '🍒') cerezas++;
+                if(s3 === '🍒') cerezas++;
+                if(cerezas === 2) multiplicador = 2; // Recuperas el doble
+            }
+
+            if(multiplicador > 0) {
+                const ganancia = apuestaActual * multiplicador;
+                mostrarWin(ganancia);
+                // PAGAR EN FIREBASE
+                db.ref('usuarios/'+usuario.uid).update({ saldo: saldo + ganancia });
+            }
+        }
+
+        function mostrarWin(monto) {
+            const aviso = document.getElementById('aviso-win');
+            document.getElementById('win-amount').innerText = monto.toLocaleString();
+            aviso.classList.add('mostrar');
+            if(navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
+            
+            setTimeout(() => {
+                aviso.classList.remove('mostrar');
+            }, 3000);
+        }
+
+    </script>
+</body>
+</html>

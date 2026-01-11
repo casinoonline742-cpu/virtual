@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ruleta Casino - Sincronizada</title>
+    <style>
+        /* --- ESTILOS GENERALES --- */
+        body { 
+            background-color: #0e3b1c; 
+            color: white; 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            padding-bottom: 140px; 
+            user-select: none; 
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* HEADER */
+        .top-bar { 
+            background: linear-gradient(180deg, #111, #222); 
+            padding: 12px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-bottom: 2px solid #d4af37; 
+            position: sticky; top:0; z-index: 100; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8); 
+        }
+        .saldo { color: #00e676; font-family: monospace; font-size: 1.4em; font-weight: bold; text-shadow: 0 0 5px rgba(0,230,118,0.5); }
+        .reloj { color: #d4af37; font-weight: bold; font-size: 1.1em; }
+
+        /* BANNER */
+        .status-banner { 
+            background: rgba(0,0,0,0.6); 
+            padding: 8px; 
+            color: #ffd700; 
+            font-weight: 800; 
+            font-size: 1.1em; 
+            letter-spacing: 1px;
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(255,215,0,0.3);
+        }
+
+        /* --- RULETA --- */
+        .ruleta-container {
+            position: relative; 
+            width: 280px; height: 280px; 
+            margin: 25px auto;
+            border-radius: 50%; 
+            border: 10px solid #d4af37; 
+            box-shadow: 0 0 30px rgba(0,0,0,0.9), inset 0 0 20px black;
+            background: #111; 
+            overflow: hidden;
+        }
+
+        .ruleta-img {
+            width: 100%; height: 100%;
+            background-image: url('ruleta.jpg'); /* Asegúrate que esta imagen existe */
+            background-size: cover; 
+            background-position: center; 
+            border-radius: 50%;
+        }
+
+        .ruleta-container::before {
+            content: ''; position: absolute; top: -5px; left: 50%; transform: translateX(-50%);
+            border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 15px solid gold;
+            z-index: 20; filter: drop-shadow(0 2px 2px black);
+        }
+
+        /* Animación CSS para girar */
+        .girando { animation: rotar 0.5s linear infinite; }
+        @keyframes rotar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* CENTRO */
+        .centro-ganador {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90px; height: 90px; 
+            background: radial-gradient(circle, #222, #000);
+            border: 4px solid #d4af37; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.8em; font-weight: 900; 
+            z-index: 10; box-shadow: 0 0 15px black;
+        }
+
+        .text-verde { color: #00e676; text-shadow: 0 0 10px #00e676; }
+        .text-rojo { color: #ff1744; text-shadow: 0 0 10px #ff1744; }
+        .text-negro { color: #fff; text-shadow: 0 0 10px #fff; }
+
+        /* --- MESA --- */
+        .mesa-contenedor { 
+            max-width: 500px; margin: 0 auto; padding: 15px; 
+            background: rgba(0,0,0,0.4); border-radius: 20px 20px 0 0; 
+            border: 2px solid #d4af37; border-bottom: none;
+        }
+
+        .tablero-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 10px; }
+        
+        .casilla-apuesta { 
+            position: relative; 
+            padding: 16px 0; 
+            font-weight: 900; font-size: 1.3em; 
+            border-radius: 6px;
+            cursor: pointer; 
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.1s;
+        }
+        .casilla-apuesta:active { transform: scale(0.95); }
+
+        .c-rojo { background: linear-gradient(135deg, #b71c1c, #8a0e0e); border: 1px solid #e57373; }
+        .c-negro { background: linear-gradient(135deg, #212121, #000000); border: 1px solid #757575; }
+        .c-verde { background: linear-gradient(135deg, #1b5e20, #0a3d0f); border: 1px solid #4caf50; grid-column: span 3; }
+        
+        .externas-grid { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-ext { flex: 1; padding: 20px; font-size: 1.2em; border: 2px solid gold; box-shadow: 0 5px 10px rgba(0,0,0,0.5); }
+
+        /* FICHAS VISUALES */
+        .casilla-apuesta::after {
+            content: "$"; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 30px; height: 30px; 
+            background: radial-gradient(circle, #ffd700 30%, #f57f17 90%);
+            border: 2px dashed #3e2723; border-radius: 50%; 
+            color: #3e2723; font-size: 14px; font-weight: 900;
+            display: flex; align-items: center; justify-content: center; 
+            transition: 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            pointer-events: none; z-index: 5; box-shadow: 2px 2px 5px rgba(0,0,0,0.8);
+        }
+        .casilla-apuesta.con-ficha::after { transform: translate(-50%, -50%) scale(1); }
+
+        /* BARRA CONFIRMAR */
+        .barra-confirmar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(15,15,15,0.98); 
+            padding: 15px 20px; 
+            border-top: 3px solid #d4af37;
+            display: flex; flex-direction: column; gap: 10px; 
+            transform: translateY(110%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 200; box-shadow: 0 -5px 20px black;
+            box-sizing: border-box;
+        }
+        .barra-confirmar.visible { transform: translateY(0); }
+        
+        .resumen-apuesta { color: #d4af37; font-size: 1.1em; margin-bottom: 5px; }
+        
+        .btn-confirmar { 
+            background: linear-gradient(90deg, #d4af37, #fbc02d); 
+            color: #000; 
+            border: none; padding: 14px; border-radius: 12px; 
+            font-size: 1.2em; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+        .btn-confirmar:active { transform: scale(0.98); }
+
+        /* POPUP GANADOR */
+        #aviso-win {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            background: rgba(0,0,0,0.95); border: 4px solid #00e676; padding: 30px;
+            border-radius: 20px; z-index: 300; text-align: center;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+            box-shadow: 0 0 50px rgba(0,230,118,0.4);
+        }
+        #aviso-win.mostrar { transform: translate(-50%, -50%) scale(1); }
+
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="saldo" id="miSaldo">$ --</div>
+        <div class="reloj" id="reloj-juego">CONECTANDO...</div>
+    </div>
+
+    <div id="banner-estado" class="status-banner">ESPERANDO SALA...</div>
+
+    <div class="ruleta-container">
+        <div id="disco-ruleta" class="ruleta-img"></div>
+        <div id="centro-resultado" class="centro-ganador">--</div>
+    </div>
+    
+    <div class="mesa-contenedor">
+        <div class="tablero-grid" id="grid-numeros"></div>
+        <div class="externas-grid">
+            <div class="casilla-apuesta btn-ext c-rojo" onclick="toggleFicha('color', 'rojo', this)">ROJO</div>
+            <div class="casilla-apuesta btn-ext c-negro" onclick="toggleFicha('color', 'negro', this)">NEGRO</div>
+        </div>
+    </div>
+
+    <div id="barra-confirmacion" class="barra-confirmar">
+        <div class="resumen-apuesta">Apuesta Total: <span style="color:white; font-weight:bold;">$</span><span id="total-pendiente" style="color:white; font-weight:bold;">0</span></div>
+        <button class="btn-confirmar" onclick="confirmarApuestasAhora()">JUGAR FICHAS 🎲</button>
+    </div>
+
+    <div id="aviso-win">
+        <h1 style="color:#00e676; margin:0; font-size: 2.5em; text-shadow: 0 0 10px green;">¡GANASTE!</h1>
+        <h2 style="color:white; margin:10px 0; font-size: 2em;">+$<span id="txt-ganancia">0</span></h2>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // --- 1. CONFIGURACIÓN ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
+            authDomain: "casino-familia.firebaseapp.com",
+            databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+            projectId: "casino-familia",
+            storageBucket: "casino-familia.firebasestorage.app",
+            messagingSenderId: "390973825874",
+            appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // VARIABLES GLOBALES
+        let usuario = null;
+        let saldo = 0;
+        const VALOR_FICHA = 200;
+        let juegoAbierto = false;
+        let apuestasPendientes = {}; 
+        let ultimoNumeroVisto = null;
+        const rojos = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+
+        // --- 2. GENERAR TABLERO ---
+        const grid = document.getElementById('grid-numeros');
+        
+        let cero = document.createElement('div');
+        cero.className = 'casilla-apuesta c-verde'; cero.innerText = "0";
+        cero.onclick = function() { toggleFicha('numero', 0, this); };
+        grid.appendChild(cero);
+        
+        for(let i=1; i<=36; i++) {
+            let div = document.createElement('div');
+            let colorClass = rojos.includes(i) ? 'c-rojo' : 'c-negro';
+            div.className = `casilla-apuesta ${colorClass}`; div.innerText = i;
+            div.onclick = function() { toggleFicha('numero', i, this); };
+            grid.appendChild(div);
+        }
+
+        // --- 3. SESIÓN Y CONTROL ---
+        auth.onAuthStateChanged(u => {
+            if(u) {
+                usuario = u;
+                // Escuchar saldo (Aquí se dispara el popup cuando llega el pago)
+                db.ref('usuarios/'+u.uid).on('value', s => {
+                    let data = s.val() || {};
+                    let nuevoSaldo = data.saldo || 0;
+                    
+                    // Si el saldo sube y NO es la carga inicial de la página
+                    if(nuevoSaldo > saldo && saldo > 0) {
+                        mostrarPremio(nuevoSaldo - saldo);
+                    }
+                    
+                    saldo = nuevoSaldo;
+                    document.getElementById('miSaldo').innerText = "$ " + new Intl.NumberFormat().format(saldo);
+                });
+                
+                verificarSiSoyCrupier();
+            } else {
+                location.href = "index.html"; 
+            }
+        });
+
+        // --- 4. LÓGICA DE AUTOMATIZACIÓN (EL CEREBRO) ---
+        function verificarSiSoyCrupier() {
+            const refControl = db.ref('control_maquina');
+            refControl.onDisconnect().remove(); 
+            
+            refControl.transaction((currentOwner) => {
+                if (currentOwner === null) return usuario.uid; 
+                return currentOwner; 
+            }, (error, committed, snapshot) => {
+                if (snapshot.val() === usuario.uid) {
+                    console.log("--> SOY EL CRUPIER. <--");
+                    cicloJuego(); 
+                }
+            });
+        }
+
+        // ESTA FUNCIÓN CONTROLA LOS TIEMPOS EXACTOS
+        async function cicloJuego() {
+            const TIEMPO_APUESTAS = 20; 
+            const TIEMPO_ANIMACION_VISUAL = 4; // 4 SEGUNDOS DE GIRO
+            const TIEMPO_CELEBRACION = 5; // TIEMPO PARA VER EL POPUP DE GANADOR
+
+            // FASE 1: ABRIR APUESTAS
+            await db.ref('estado_ruleta').update({ abierto: true, tiempo: TIEMPO_APUESTAS });
+            
+            for(let i=TIEMPO_APUESTAS; i>=0; i--) {
+                await db.ref('estado_ruleta/tiempo').set(i);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            // FASE 2: ELEGIR NÚMERO Y MANDAR A GIRAR
+            const numGanador = Math.floor(Math.random() * 37); 
+            
+            // Al actualizar esto, todos los celulares empiezan a girar (ver función animarGiro)
+            await db.ref('estado_ruleta').update({ 
+                abierto: false, 
+                ultimoNumero: numGanador, 
+                tiempo: 0 
+            });
+
+            // FASE 3: ESPERA SINCRONIZADA
+            // El cerebro espera 4 segundos MIENTRAS la ruleta gira en las pantallas
+            console.log("Esperando que termine la animación visual...");
+            await new Promise(r => setTimeout(r, TIEMPO_ANIMACION_VISUAL * 1000));
+
+            // FASE 4: ¡PAGAR YA! 
+            // La ruleta acaba de parar visualmente. Enviamos el dinero en este milisegundo.
+            console.log("Animación terminó. Pagando...");
+            await procesarPagos(numGanador);
+
+            // FASE 5: CELEBRACIÓN
+            // Esperamos unos segundos para que la gente vea su letrero de "GANASTE"
+            // Antes de borrar las fichas de la mesa.
+            await new Promise(r => setTimeout(r, TIEMPO_CELEBRACION * 1000));
+            
+            // FASE 6: LIMPIAR TODO Y REPETIR
+            await db.ref('apuestas_mesa').remove();
+            cicloJuego(); 
+        }
+
+        async function procesarPagos(numGanador) {
+            const snap = await db.ref('apuestas_mesa').once('value');
+            const apuestas = snap.val();
+            if(!apuestas) return;
+
+            for(let id in apuestas) {
+                let a = apuestas[id];
+                let gana = false;
+                let multiplicador = 0;
+                const seleccionNum = parseInt(a.seleccion); 
+
+                if(a.tipo === 'numero' && seleccionNum === numGanador) { 
+                    gana = true; multiplicador = 36; 
+                }
+                else if(a.tipo === 'color') {
+                    const esRojo = rojos.includes(numGanador);
+                    const esNegro = !esRojo && numGanador !== 0;
+                    if(a.seleccion === 'rojo' && esRojo) { gana = true; multiplicador = 2; }
+                    if(a.seleccion === 'negro' && esNegro) { gana = true; multiplicador = 2; }
+                }
+
+                if(gana) {
+                    const premio = a.monto * multiplicador;
+                    // Actualizar saldo (Esto dispara el popup en el celular del ganador)
+                    await db.ref('usuarios/' + a.uid + '/saldo').transaction(saldoActual => {
+                        return (saldoActual || 0) + premio;
+                    });
+                }
+            }
+        }
+
+        // --- 5. VISUALIZACIÓN (LO QUE VEN TUS OJOS) ---
+        db.ref('estado_ruleta').on('value', snap => {
+            const data = snap.val();
+            if(!data) return;
+
+            juegoAbierto = data.abierto;
+            
+            const reloj = document.getElementById('reloj-juego');
+            const banner = document.getElementById('banner-estado');
+            
+            if(juegoAbierto) {
+                reloj.innerText = "⏳ " + data.tiempo + "s";
+                reloj.style.color = "#00e676";
+                banner.innerText = "¡HAGAN SUS APUESTAS!";
+                banner.style.color = "#ffd700";
+                
+                // Limpiar centro al inicio de nueva ronda
+                if(data.tiempo > 15) {
+                     const centro = document.getElementById('centro-resultado');
+                     centro.innerText = "--";
+                     centro.className = "centro-ganador";
+                     centro.style.background = "radial-gradient(circle, #222, #000)";
+                }
+
+            } else {
+                reloj.innerText = "⛔ CERRADO";
+                reloj.style.color = "red";
+                banner.innerText = "GIRANDO...";
+                banner.style.color = "#ff5252";
+            }
+
+            // Detectar cuando cambia el número ganador (inicia giro)
+            if(data.ultimoNumero !== undefined && data.ultimoNumero !== ultimoNumeroVisto && !juegoAbierto) {
+                animarGiro(data.ultimoNumero);
+                ultimoNumeroVisto = data.ultimoNumero;
+            }
+        });
+
+        function animarGiro(numeroFinal) {
+            const disco = document.getElementById('disco-ruleta');
+            const centro = document.getElementById('centro-resultado');
+            
+            if(navigator.vibrate) navigator.vibrate(200);
+
+            // 1. EMPIEZA A GIRAR
+            disco.classList.add('girando');
+            centro.innerText = "";
+            
+            // 2. DETENERSE A LOS 4 SEGUNDOS EXACTOS
+            // (Debe coincidir con TIEMPO_ANIMACION_VISUAL del cerebro)
+            setTimeout(() => {
+                disco.classList.remove('girando');
+                centro.innerText = numeroFinal;
+                
+                // Poner color al número
+                if(numeroFinal === 0) {
+                    centro.className = "centro-ganador text-verde";
+                } else if(rojos.includes(numeroFinal)) {
+                    centro.className = "centro-ganador text-rojo";
+                } else {
+                    centro.className = "centro-ganador text-negro";
+                }
+
+                // NOTA: Aquí no pagamos. El pago llega solo desde el servidor en este instante.
+                // Cuando llegue, se activará 'mostrarPremio' arriba.
+                
+                // Solo limpiamos las fichas visuales
+                limpiarFichasMias();
+                
+            }, 4000); // 4000ms = 4 Segundos
+        }
+
+        // --- 6. INTERACCIÓN DE APUESTA ---
+        function toggleFicha(tipo, valor, elemento) {
+            if(!juegoAbierto) return alert("¡Mesa cerrada!");
+            
+            const idApuesta = `${tipo}-${valor}`;
+
+            if(apuestasPendientes[idApuesta]) {
+                delete apuestasPendientes[idApuesta];
+                elemento.classList.remove('con-ficha');
+                if(navigator.vibrate) navigator.vibrate(50);
+            } else {
+                const fichasPuestas = Object.keys(apuestasPendientes).length;
+                if(saldo < (fichasPuestas + 1) * VALOR_FICHA) {
+                    return alert("Saldo insuficiente");
+                }
+                
+                apuestasPendientes[idApuesta] = { tipo, valor, elem: elemento };
+                elemento.classList.add('con-ficha');
+                if(navigator.vibrate) navigator.vibrate([50, 30, 50]);
+            }
+            actualizarBarraConfirmacion();
+        }
+
+        function actualizarBarraConfirmacion() {
+            const cantidad = Object.keys(apuestasPendientes).length;
+            const barra = document.getElementById('barra-confirmacion');
+            const txtTotal = document.getElementById('total-pendiente');
+            
+            if(cantidad > 0) {
+                txtTotal.innerText = new Intl.NumberFormat().format(cantidad * VALOR_FICHA);
+                barra.classList.add('visible');
+            } else {
+                barra.classList.remove('visible');
+            }
+        }
+
+        function confirmarApuestasAhora() {
+            if(!juegoAbierto) return alert("El tiempo se acabó.");
+            
+            const cantidad = Object.keys(apuestasPendientes).length;
+            const costoTotal = cantidad * VALOR_FICHA;
+
+            if(saldo < costoTotal) return alert("No tienes saldo suficiente.");
+
+            // Descontar saldo
+            db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - costoTotal });
+
+            // Enviar apuestas
+            for(let key in apuestasPendientes) {
+                const apuesta = apuestasPendientes[key];
+                db.ref('apuestas_mesa').push({
+                    uid: usuario.uid,
+                    nombre: usuario.email || "Anon",
+                    tipo: apuesta.tipo,
+                    seleccion: apuesta.valor, 
+                    monto: VALOR_FICHA
+                });
+            }
+
+            apuestasPendientes = {};
+            actualizarBarraConfirmacion();
+            alert("✅ ¡Apostado!");
+        }
+
+        function limpiarFichasMias() {
+            document.querySelectorAll('.casilla-apuesta').forEach(el => el.classList.remove('con-ficha'));
+            apuestasPendientes = {};
+            actualizarBarraConfirmacion();
+        }
+
+        function mostrarPremio(monto) {
+            const popup = document.getElementById('aviso-win');
+            document.getElementById('txt-ganancia').innerText = new Intl.NumberFormat().format(monto);
+            popup.classList.add('mostrar');
+            
+            // Sonido
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine'; osc.frequency.value = 500;
+            osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.5);
+            
+            setTimeout(() => { popup.classList.remove('mostrar'); }, 4000);
+        }
+    </script>
+</body>
+</html>
