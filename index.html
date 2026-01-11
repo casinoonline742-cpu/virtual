@@ -59,10 +59,15 @@
             margin-bottom: 10px; text-align: center; font-size: 13px; cursor: pointer;
             border: 1px solid #444; animation: pulse 2s infinite;
         }
-        /* Estilo específico para el botón de retiro para diferenciarlo un poco */
         .banner-retiro {
             border-color: var(--primary-neon); 
             color: var(--primary-neon);
+        }
+        /* Botón de Notificaciones */
+        .banner-notif {
+            border-color: #ff4081; 
+            color: #ff4081;
+            display: none; /* Se activa con JS si no hay permiso */
         }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
@@ -78,12 +83,8 @@
         }
         .game-item:active { transform: scale(0.95); background: #252525; }
         
-        /* Ajuste para iconos normales (Emoji) */
         .game-item span.emoji { font-size: 40px; margin-bottom: 10px; }
-        
-        /* Ajuste para iconos SVG (Ruleta y Slots) */
         .game-item svg { width: 50px; height: 50px; margin-bottom: 10px; fill: var(--gold); }
-        
         .game-item b { font-size: 12px; letter-spacing: 1px; text-align: center; }
 
         .game-full {
@@ -100,7 +101,7 @@
         #panel-admin { background: #1a1a1a; padding: 15px; border-radius: 12px; margin-top: 25px; border: 1px dashed #444; }
         .error { color: #ff5252; font-size: 12px; text-align: center; margin-top: 10px; }
 
-        /* --- POPUP BIENVENIDA --- */
+        /* --- POPUPS --- */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center;
@@ -110,6 +111,18 @@
             background: #1e1e1e; padding: 25px; border-radius: 15px; border: 2px solid var(--gold);
             text-align: center; max-width: 300px; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
         }
+        
+        /* TOAST NOTIFICACIÓN (In-App) */
+        #toast-notif {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150%);
+            background: #333; color: white; padding: 15px 20px; border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 300;
+            display: flex; align-items: center; gap: 10px;
+            border: 2px solid var(--gold);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 80%; max-width: 300px;
+        }
+        #toast-notif.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
@@ -138,6 +151,10 @@
             <span class="pot-icon">🎰</span> 
         </div>
 
+        <div id="btn-permiso-notif" class="banner-recarga banner-notif" onclick="solicitarPermisoNotificaciones()">
+            🔔 <b>ACTIVAR NOTIFICACIONES</b> <br> <small>Para recibir premios sorpresa</small>
+        </div>
+
         <div class="banner-recarga" onclick="window.open('https://wa.me/573204491926?text=Hola,%20quiero%20recargar%20saldo', '_blank')">
             💰 ¿Necesitas saldo? <b>Toca aquí para WhatsApp</b>
         </div>
@@ -150,7 +167,6 @@
             <div class="game-item" onclick="irAlJuego('bingo.html')">
                 <span class="emoji">🎱</span><b>BINGO</b>
             </div>
-
             <div class="game-item" onclick="irAlJuego('ruleta.html')">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#FFD700"/>
@@ -160,11 +176,9 @@
                 </svg>
                 <b>RULETA</b>
             </div>
-
             <div class="game-item" onclick="irAlJuego('blackjack.html')">
                 <span class="emoji">🃏</span><b>BLACKJACK</b>
             </div>
-
             <div class="game-item" onclick="irAlJuego('tragamonedas.html')">
                 <svg viewBox="0 0 24 24">
                     <path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm0 2v14h14V5H5zm16 4h1v6h-1V9z" fill="#FFD700"/>
@@ -174,11 +188,9 @@
                 </svg>
                 <b>TRAGAMONEDAS</b>
             </div>
-
             <div class="game-item" onclick="irAlJuego('raspa.html')">
                 <span class="emoji">🍀</span><b>RASPA Y GANA</b>
             </div>
-
             <div class="game-item" onclick="irAlJuego('caballos.html')">
                 <span class="emoji">🏇</span><b>CABALLOS</b>
             </div>
@@ -188,6 +200,13 @@
 
         <div id="panel-admin" style="display:none;">
             <h3 style="color: var(--gold); margin-top:0;">👑 Panel de Control</h3>
+            
+            <div style="background:#222; padding:10px; border-radius:8px; border:1px solid #444; margin-bottom:15px;">
+                <h4 style="margin:5px 0; color:#00e676;">📢 Enviar Notificación Global</h4>
+                <input type="text" id="txtNotificacion" placeholder="Escribe el mensaje aquí..." style="margin-top:5px;">
+                <button class="btn-main" onclick="enviarNotificacionGlobal()" style="font-size:0.9em; padding:10px;">ENVIAR A TODOS</button>
+            </div>
+
             <input type="text" id="uidRecarga" placeholder="ID del Usuario">
             <input type="number" id="montoRecarga" placeholder="Monto">
             <button class="btn-main" onclick="recargarSaldo()">ENVIAR RECARGA</button>
@@ -198,6 +217,14 @@
 
 </div>
 
+<div id="toast-notif">
+    <div style="font-size: 20px;">🔔</div>
+    <div>
+        <div style="font-weight:bold; color:var(--gold); font-size:12px;">NUEVO MENSAJE</div>
+        <div id="toast-msg" style="font-size:14px;">...</div>
+    </div>
+</div>
+
 <div id="modal-bienvenida" class="modal-overlay">
     <div class="modal-box">
         <h1 style="font-size: 50px; margin: 0;">🎁</h1>
@@ -206,9 +233,6 @@
             Te damos un bono de bienvenida de <b style="color:#00e676;">$500</b> para que empieces a jugar.
         </p>
         <hr style="border-color:#333; margin: 15px 0;">
-        <p style="color: #ff5252; font-size: 0.9em;">
-            ⚠️ Recuerda que el retiro mínimo es de <b>$1000 pesos</b>.
-        </p>
         <button class="btn-main" onclick="cerrarBienvenida()">¡A JUGAR!</button>
     </div>
 </div>
@@ -238,10 +262,95 @@
         if (user) {
             mostrarPantalla('pantalla-lobby');
             cargarDatosUsuario(user);
+            verificarPermisosNotif(); // Verificar si ya tenemos permiso
+            escucharNotificacionesGlobales(); // Empezar a escuchar mensajes del admin
         } else {
             mostrarPantalla('pantalla-login');
         }
     });
+
+    // --- SISTEMA DE NOTIFICACIONES ---
+
+    function verificarPermisosNotif() {
+        if (!("Notification" in window)) return; // No soporta notificaciones
+        
+        // Si no ha concedido permiso, mostramos el botón
+        if (Notification.permission === "default") {
+            document.getElementById('btn-permiso-notif').style.display = 'block';
+        } else {
+            document.getElementById('btn-permiso-notif').style.display = 'none';
+        }
+    }
+
+    function solicitarPermisoNotificaciones() {
+        if (!("Notification" in window)) {
+            alert("Tu navegador no soporta notificaciones.");
+            return;
+        }
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                alert("✅ ¡Notificaciones activadas!");
+                document.getElementById('btn-permiso-notif').style.display = 'none';
+                new Notification("Casino Virtual", { body: "¡Gracias! Te avisaremos de bonos y premios." });
+            }
+        });
+    }
+
+    function enviarNotificacionGlobal() {
+        const msg = document.getElementById('txtNotificacion').value;
+        if(!msg) return alert("Escribe un mensaje");
+
+        // Guardar en Firebase con Timestamp para que sea única
+        db.ref('notificaciones_globales').push({
+            mensaje: msg,
+            fecha: Date.now()
+        });
+
+        alert("Mensaje enviado a todos.");
+        document.getElementById('txtNotificacion').value = "";
+    }
+
+    function escucharNotificacionesGlobales() {
+        // Escuchar el último mensaje añadido
+        db.ref('notificaciones_globales').limitToLast(1).on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if(!data) return;
+
+            // Verificar que la notificación sea reciente (últimos 60 segundos)
+            // Para evitar que salgan notificaciones viejas al recargar la página
+            const ahora = Date.now();
+            if (ahora - data.fecha < 60000) {
+                mostrarNotificacionUsuario(data.mensaje);
+            }
+        });
+    }
+
+    function mostrarNotificacionUsuario(mensaje) {
+        // 1. Mostrar notificación del sistema (Si hay permiso)
+        if (Notification.permission === "granted") {
+            try {
+                new Notification("📢 AVISO CASINO", { 
+                    body: mensaje,
+                    icon: "https://cdn-icons-png.flaticon.com/512/1055/1055823.png" // Icono genérico de casino
+                });
+            } catch(e) { console.log(e); }
+        }
+
+        // 2. Mostrar Toast In-App (Siempre visible)
+        const toast = document.getElementById('toast-notif');
+        document.getElementById('toast-msg').innerText = mensaje;
+        toast.classList.add('show');
+        
+        // Sonido de notificación
+        if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+        // Ocultar Toast a los 5 segundos
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 5000);
+    }
+
+    // --- FUNCIONES EXISTENTES ---
 
     function registrarUsuario() {
         const email = document.getElementById('email').value.trim();
@@ -249,10 +358,7 @@
         if(!email || !pass) return;
         
         auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
-            db.ref('usuarios/' + cred.user.uid).set({ 
-                email: email, 
-                saldo: 500 
-            });
+            db.ref('usuarios/' + cred.user.uid).set({ email: email, saldo: 500 });
             document.getElementById('modal-bienvenida').style.display = 'flex';
         }).catch(e => document.getElementById('mensajeError').innerText = e.message);
     }
