@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Casino Virtual - Android Style</title>
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkNhc2lubyBWaXJ0dWFsIiwKICAic2hvcnRfbmFtZSI6ICJDYXNpbm8iLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAiYnJvd3NlciIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzEyMTIxMiIsCiAgInRoZW1lX2NvbG9yIjogIiNGRkQ3MDAiCn0=">
     <style>
         :root {
             --android-bg: #121212;
@@ -59,16 +60,8 @@
             margin-bottom: 10px; text-align: center; font-size: 13px; cursor: pointer;
             border: 1px solid #444; animation: pulse 2s infinite;
         }
-        .banner-retiro {
-            border-color: var(--primary-neon); 
-            color: var(--primary-neon);
-        }
-        /* Botón de Notificaciones */
-        .banner-notif {
-            border-color: #ff4081; 
-            color: #ff4081;
-            display: none; /* Se activa con JS si no hay permiso */
-        }
+        .banner-retiro { border-color: var(--primary-neon); color: var(--primary-neon); }
+        .banner-notif { border-color: #ff4081; color: #ff4081; display: none; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
@@ -82,18 +75,10 @@
             transition: transform 0.1s; cursor: pointer;
         }
         .game-item:active { transform: scale(0.95); background: #252525; }
-        
         .game-item span.emoji { font-size: 40px; margin-bottom: 10px; }
         .game-item svg { width: 50px; height: 50px; margin-bottom: 10px; fill: var(--gold); }
         .game-item b { font-size: 12px; letter-spacing: 1px; text-align: center; }
-
-        .game-full {
-            grid-column: span 2;
-            aspect-ratio: auto;
-            padding: 20px;
-            background: linear-gradient(45deg, #1e1e1e, #2a2a2a);
-            border: 1px solid var(--gold);
-        }
+        .game-full { grid-column: span 2; aspect-ratio: auto; padding: 20px; background: linear-gradient(45deg, #1e1e1e, #2a2a2a); border: 1px solid var(--gold); }
 
         /* --- ADMIN & OTROS --- */
         .admin-tag { background: black; color: var(--gold); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; position: absolute; top: 20px; right: 20px; }
@@ -111,18 +96,6 @@
             background: #1e1e1e; padding: 25px; border-radius: 15px; border: 2px solid var(--gold);
             text-align: center; max-width: 300px; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
         }
-        
-        /* TOAST NOTIFICACIÓN (In-App) */
-        #toast-notif {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150%);
-            background: #333; color: white; padding: 15px 20px; border-radius: 50px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 300;
-            display: flex; align-items: center; gap: 10px;
-            border: 2px solid var(--gold);
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            width: 80%; max-width: 300px;
-        }
-        #toast-notif.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
@@ -151,62 +124,43 @@
             <span class="pot-icon">🎰</span> 
         </div>
 
-        <div id="btn-permiso-notif" class="banner-recarga banner-notif" onclick="solicitarPermisoNotificaciones()">
-            🔔 <b>ACTIVAR NOTIFICACIONES</b> <br> <small>Para recibir premios sorpresa</small>
+        <div id="btn-permiso-notif" class="banner-recarga banner-notif" onclick="activarFCM()">
+            🔔 <b>ACTIVAR NOTIFICACIONES</b> <br> <small>Recibe alertas con la app cerrada</small>
         </div>
 
         <div class="banner-recarga" onclick="window.open('https://wa.me/573204491926?text=Hola,%20quiero%20recargar%20saldo', '_blank')">
             💰 ¿Necesitas saldo? <b>Toca aquí para WhatsApp</b>
         </div>
-
         <div class="banner-recarga banner-retiro" onclick="window.open('https://wa.me/573204491926?text=Hola,%20deseo%20retirar%20mis%20ganancias', '_blank')">
             💸 ¿Quieres retirar? <b>Toca aquí para Retirar</b>
         </div>
 
         <div class="menu-grid">
-            <div class="game-item" onclick="irAlJuego('bingo.html')">
-                <span class="emoji">🎱</span><b>BINGO</b>
+            <div class="game-item" onclick="irAlJuego('bingo.html')"> <span class="emoji">🎱</span><b>BINGO</b> </div>
+            <div class="game-item" onclick="irAlJuego('ruleta.html')"> 
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#FFD700"/><circle cx="12" cy="12" r="3" fill="#FFD700"/><circle cx="12" cy="12" r="1" fill="#000"/></svg>
+                <b>RULETA</b> 
             </div>
-            <div class="game-item" onclick="irAlJuego('ruleta.html')">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#FFD700"/>
-                    <path d="M12 4V2M12 22v-2M4 12H2m20 0h-2M6.34 6.34L4.93 4.93m14.14 14.14l-1.41-1.41M6.34 17.66L4.93 19.07m14.14-14.14l-1.41 1.41" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
-                    <circle cx="12" cy="12" r="3" fill="#FFD700"/>
-                    <circle cx="12" cy="12" r="1" fill="#000"/>
-                </svg>
-                <b>RULETA</b>
+            <div class="game-item" onclick="irAlJuego('blackjack.html')"> <span class="emoji">🃏</span><b>BLACKJACK</b> </div>
+            <div class="game-item" onclick="irAlJuego('tragamonedas.html')"> 
+                <svg viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm0 2v14h14V5H5zm16 4h1v6h-1V9z" fill="#FFD700"/><rect x="7" y="8" width="10" height="8" rx="1" fill="#333"/><text x="8" y="14" fill="#00e676" font-size="6" font-weight="bold" font-family="monospace">777</text><circle cx="12" cy="12" r="1" fill="#FFD700"/></svg>
+                <b>TRAGAMONEDAS</b> 
             </div>
-            <div class="game-item" onclick="irAlJuego('blackjack.html')">
-                <span class="emoji">🃏</span><b>BLACKJACK</b>
-            </div>
-            <div class="game-item" onclick="irAlJuego('tragamonedas.html')">
-                <svg viewBox="0 0 24 24">
-                    <path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm0 2v14h14V5H5zm16 4h1v6h-1V9z" fill="#FFD700"/>
-                    <rect x="7" y="8" width="10" height="8" rx="1" fill="#333"/>
-                    <text x="8" y="14" fill="#00e676" font-size="6" font-weight="bold" font-family="monospace">777</text>
-                    <circle cx="12" cy="18" r="1" fill="#FFD700"/>
-                </svg>
-                <b>TRAGAMONEDAS</b>
-            </div>
-            <div class="game-item" onclick="irAlJuego('raspa.html')">
-                <span class="emoji">🍀</span><b>RASPA Y GANA</b>
-            </div>
-            <div class="game-item" onclick="irAlJuego('caballos.html')">
-                <span class="emoji">🏇</span><b>CABALLOS</b>
-            </div>
+            <div class="game-item" onclick="irAlJuego('raspa.html')"> <span class="emoji">🍀</span><b>RASPA Y GANA</b> </div>
+            <div class="game-item" onclick="irAlJuego('caballos.html')"> <span class="emoji">🏇</span><b>CABALLOS</b> </div>
+            <div class="game-item" onclick="irAlJuego('crash.html')"> <span class="emoji">🚀</span><b>CRASH</b> </div>
         </div>
 
         <button class="btn-danger" onclick="cerrarSesion()">CERRAR SESIÓN</button>
 
         <div id="panel-admin" style="display:none;">
             <h3 style="color: var(--gold); margin-top:0;">👑 Panel de Control</h3>
-            
             <div style="background:#222; padding:10px; border-radius:8px; border:1px solid #444; margin-bottom:15px;">
-                <h4 style="margin:5px 0; color:#00e676;">📢 Enviar Notificación Global</h4>
-                <input type="text" id="txtNotificacion" placeholder="Escribe el mensaje aquí..." style="margin-top:5px;">
-                <button class="btn-main" onclick="enviarNotificacionGlobal()" style="font-size:0.9em; padding:10px;">ENVIAR A TODOS</button>
+                <h4 style="margin:5px 0; color:#00e676;">📢 Notificación Global</h4>
+                <p style="font-size:11px; color:#aaa;">Nota: Para que llegue cerrada, usa la Consola de Firebase. Esto envía alerta in-app.</p>
+                <input type="text" id="txtNotificacion" placeholder="Mensaje..." style="margin-top:5px;">
+                <button class="btn-main" onclick="enviarNotificacionInApp()" style="font-size:0.9em; padding:10px;">ENVIAR ALERTA</button>
             </div>
-
             <input type="text" id="uidRecarga" placeholder="ID del Usuario">
             <input type="number" id="montoRecarga" placeholder="Monto">
             <button class="btn-main" onclick="recargarSaldo()">ENVIAR RECARGA</button>
@@ -214,25 +168,13 @@
             <ul id="listaUsuarios" style="list-style:none; padding:0; font-size:12px; color:#aaa;"></ul>
         </div>
     </div>
-
-</div>
-
-<div id="toast-notif">
-    <div style="font-size: 20px;">🔔</div>
-    <div>
-        <div style="font-weight:bold; color:var(--gold); font-size:12px;">NUEVO MENSAJE</div>
-        <div id="toast-msg" style="font-size:14px;">...</div>
-    </div>
 </div>
 
 <div id="modal-bienvenida" class="modal-overlay">
     <div class="modal-box">
-        <h1 style="font-size: 50px; margin: 0;">🎁</h1>
-        <h2 style="color: var(--gold); margin: 10px 0;">¡BONO RECIBIDO!</h2>
-        <p style="font-size: 1.1em; line-height: 1.5;">
-            Te damos un bono de bienvenida de <b style="color:#00e676;">$500</b> para que empieces a jugar.
-        </p>
-        <hr style="border-color:#333; margin: 15px 0;">
+        <h1>🎁</h1>
+        <h2 style="color: var(--gold);">¡BONO RECIBIDO!</h2>
+        <p>Te damos un bono de bienvenida de <b style="color:#00e676;">$500</b>.</p>
         <button class="btn-main" onclick="cerrarBienvenida()">¡A JUGAR!</button>
     </div>
 </div>
@@ -240,6 +182,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
 
 <script>
     const firebaseConfig = {
@@ -257,124 +200,95 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
+    
+    // Inicializar Messaging (Puede fallar si no es HTTPS o Localhost)
+    let messaging;
+    try {
+        messaging = firebase.messaging();
+    } catch(e) {
+        console.log("FCM no soportado aquí (necesita HTTPS):", e);
+    }
 
     auth.onAuthStateChanged((user) => {
         if (user) {
             mostrarPantalla('pantalla-lobby');
             cargarDatosUsuario(user);
-            verificarPermisosNotif(); // Verificar si ya tenemos permiso
-            escucharNotificacionesGlobales(); // Empezar a escuchar mensajes del admin
+            if(messaging) checkNotificationPermission();
+            escucharAlertasInApp();
         } else {
             mostrarPantalla('pantalla-login');
         }
     });
 
-    // --- SISTEMA DE NOTIFICACIONES ---
-
-    function verificarPermisosNotif() {
-        if (!("Notification" in window)) return; // No soporta notificaciones
-        
-        // Si no ha concedido permiso, mostramos el botón
-        if (Notification.permission === "default") {
+    // --- NOTIFICACIONES PUSH (FCM) ---
+    function checkNotificationPermission() {
+        if(Notification.permission === 'default') {
             document.getElementById('btn-permiso-notif').style.display = 'block';
-        } else {
-            document.getElementById('btn-permiso-notif').style.display = 'none';
         }
     }
 
-    function solicitarPermisoNotificaciones() {
-        if (!("Notification" in window)) {
-            alert("Tu navegador no soporta notificaciones.");
-            return;
-        }
+    function activarFCM() {
         Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                alert("✅ ¡Notificaciones activadas!");
+            if (permission === 'granted') {
                 document.getElementById('btn-permiso-notif').style.display = 'none';
-                new Notification("Casino Virtual", { body: "¡Gracias! Te avisaremos de bonos y premios." });
-            }
-        });
-    }
-
-    function enviarNotificacionGlobal() {
-        const msg = document.getElementById('txtNotificacion').value;
-        if(!msg) return alert("Escribe un mensaje");
-
-        // Guardar en Firebase con Timestamp para que sea única
-        db.ref('notificaciones_globales').push({
-            mensaje: msg,
-            fecha: Date.now()
-        });
-
-        alert("Mensaje enviado a todos.");
-        document.getElementById('txtNotificacion').value = "";
-    }
-
-    function escucharNotificacionesGlobales() {
-        // Escuchar el último mensaje añadido
-        db.ref('notificaciones_globales').limitToLast(1).on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            if(!data) return;
-
-            // Verificar que la notificación sea reciente (últimos 60 segundos)
-            // Para evitar que salgan notificaciones viejas al recargar la página
-            const ahora = Date.now();
-            if (ahora - data.fecha < 60000) {
-                mostrarNotificacionUsuario(data.mensaje);
-            }
-        });
-    }
-
-    function mostrarNotificacionUsuario(mensaje) {
-        // 1. Mostrar notificación del sistema (Si hay permiso)
-        if (Notification.permission === "granted") {
-            try {
-                new Notification("📢 AVISO CASINO", { 
-                    body: mensaje,
-                    icon: "https://cdn-icons-png.flaticon.com/512/1055/1055823.png" // Icono genérico de casino
+                
+                // Obtener Token
+                messaging.getToken({ vapidKey: 'TU_VAPID_KEY_AQUI_SI_TIENES' }).then((currentToken) => {
+                    if (currentToken) {
+                        console.log("Token FCM:", currentToken);
+                        // Guardar token en DB para que el admin sepa a quien enviar
+                        if(auth.currentUser) {
+                            db.ref('usuarios/' + auth.currentUser.uid + '/fcmToken').set(currentToken);
+                        }
+                    }
+                }).catch((err) => {
+                    console.log('Error al obtener token.', err);
                 });
-            } catch(e) { console.log(e); }
-        }
-
-        // 2. Mostrar Toast In-App (Siempre visible)
-        const toast = document.getElementById('toast-notif');
-        document.getElementById('toast-msg').innerText = mensaje;
-        toast.classList.add('show');
-        
-        // Sonido de notificación
-        if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
-
-        // Ocultar Toast a los 5 segundos
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 5000);
+            }
+        });
     }
 
-    // --- FUNCIONES EXISTENTES ---
+    // --- ALERTAS IN-APP (Para cuando la app está abierta) ---
+    function enviarNotificacionInApp() {
+        const msg = document.getElementById('txtNotificacion').value;
+        if(!msg) return;
+        // Escribimos en la DB, todos los clientes escuchan esto
+        db.ref('alertas_globales').push({
+            mensaje: msg,
+            timestamp: Date.now()
+        });
+        alert("Enviado (Verán la alerta si tienen la app abierta)");
+    }
 
+    function escucharAlertasInApp() {
+        db.ref('alertas_globales').limitToLast(1).on('child_added', snapshot => {
+            const data = snapshot.val();
+            const now = Date.now();
+            // Solo mostrar si tiene menos de 1 minuto de antigüedad
+            if(now - data.timestamp < 60000) {
+                alert("📢 MENSAJE DEL ADMIN:\n\n" + data.mensaje);
+                if(navigator.vibrate) navigator.vibrate([200,100,200]);
+            }
+        });
+    }
+
+    // --- FUNCIONES BÁSICAS ---
     function registrarUsuario() {
         const email = document.getElementById('email').value.trim();
         const pass = document.getElementById('password').value;
         if(!email || !pass) return;
-        
         auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
             db.ref('usuarios/' + cred.user.uid).set({ email: email, saldo: 500 });
             document.getElementById('modal-bienvenida').style.display = 'flex';
         }).catch(e => document.getElementById('mensajeError').innerText = e.message);
     }
-
-    function cerrarBienvenida() {
-        document.getElementById('modal-bienvenida').style.display = 'none';
-    }
-
+    function cerrarBienvenida() { document.getElementById('modal-bienvenida').style.display = 'none'; }
     function iniciarSesion() {
         const email = document.getElementById('email').value.trim();
         const pass = document.getElementById('password').value;
         auth.signInWithEmailAndPassword(email, pass).catch(e => document.getElementById('mensajeError').innerText = e.message);
     }
-
     function cerrarSesion() { auth.signOut(); }
-
     function cargarDatosUsuario(user) {
         document.getElementById('nombreUsuario').innerText = user.email;
         db.ref('usuarios/' + user.uid).on('value', (snap) => {
@@ -384,14 +298,12 @@
                 document.getElementById('textoSaldo').innerText = money;
             }
         });
-
         if(user.email.toLowerCase() === CORREO_ADMIN.toLowerCase()) {
             document.getElementById('panel-admin').style.display = "block";
             document.getElementById('etiquetaAdmin').style.display = "block";
             activarListaUsuarios();
         }
     }
-
     function activarListaUsuarios() {
         db.ref('usuarios').on('value', (snap) => {
             const lista = document.getElementById('listaUsuarios');
@@ -406,7 +318,6 @@
             });
         });
     }
-
     function recargarSaldo() {
         const uid = document.getElementById('uidRecarga').value;
         const monto = parseInt(document.getElementById('montoRecarga').value);
@@ -418,12 +329,10 @@
             }
         });
     }
-
     function mostrarPantalla(id) {
         document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
         document.getElementById(id).classList.add('activa');
     }
-
     function irAlJuego(url) { window.location.href = url; }
 </script>
 </body>
