@@ -227,7 +227,7 @@
     </div>
 
     <div class="panel-apuestas">
-        <div class="titulo-panel">SELECCIONA GANADOR:</div>
+        <div class="titulo-panel">SELECCIONA GANADOR (PAGO X2):</div>
         <div class="grid-caballos" id="lista-caballos">
         </div>
 
@@ -264,11 +264,12 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
+        // --- MODIFICACIÓN: TODOS PAGAN X2.0 ---
         const CABALLOS = [
             { id: 1, nombre: "Relámpago", icono: "🏇", color: "#d32f2f", cuota: 2.0 }, 
-            { id: 2, nombre: "Tornado", icono: "🏇", color: "#1976d2", cuota: 3.5 },
-            { id: 3, nombre: "Diablo", icono: "🏇", color: "#388e3c", cuota: 5.0 },
-            { id: 4, nombre: "Sombra", icono: "🏇", color: "#fbc02d", cuota: 10.0 } 
+            { id: 2, nombre: "Tornado", icono: "🏇", color: "#1976d2", cuota: 2.0 },
+            { id: 3, nombre: "Diablo", icono: "🏇", color: "#388e3c", cuota: 2.0 },
+            { id: 4, nombre: "Sombra", icono: "🏇", color: "#fbc02d", cuota: 2.0 } 
         ];
 
         let usuario = null;
@@ -332,6 +333,7 @@
             if(navigator.vibrate) navigator.vibrate(20);
         }
 
+        // Ahora que todas las cuotas son iguales, la probabilidad es igual (25% cada uno)
         function obtenerGanadorPorProbabilidad() {
             let pesos = CABALLOS.map(c => 1 / c.cuota);
             let totalPeso = pesos.reduce((a, b) => a + b, 0);
@@ -393,6 +395,7 @@
                 
                 document.getElementById('win-name').innerText = "#" + idGanador + " " + caballoWin.nombre;
                 if(ganaste) {
+                    // CÁLCULO DE PREMIO: MONTO * 2.0
                     const premio = Math.floor(monto * caballoWin.cuota);
                     document.getElementById('win-monto').innerText = "+ $" + premio.toLocaleString();
                     document.getElementById('win-monto').style.color = "#00e676";
