@@ -53,16 +53,22 @@
         .balance-amount { font-size: 32px; font-weight: bold; display: block; margin-top: 5px; }
         .pot-icon { position: absolute; right: 20px; bottom: 15px; font-size: 40px; opacity: 0.8; }
 
-        /* --- BANNER RECARGA --- */
+        /* --- BANNERS ACCION (Recarga y Retiro) --- */
         .banner-recarga {
             background: #2c2c2c; color: var(--gold); padding: 12px; border-radius: 8px;
-            margin-bottom: 16px; text-align: center; font-size: 13px; cursor: pointer;
+            margin-bottom: 10px; text-align: center; font-size: 13px; cursor: pointer;
             border: 1px solid #444; animation: pulse 2s infinite;
         }
+        /* Estilo específico para el botón de retiro para diferenciarlo un poco */
+        .banner-retiro {
+            border-color: var(--primary-neon); 
+            color: var(--primary-neon);
+        }
+
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
         /* --- GRID DE JUEGOS --- */
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;}
         
         .game-item {
             background-color: var(--surface); aspect-ratio: 1 / 1; border-radius: 12px;
@@ -78,7 +84,7 @@
         /* Ajuste para iconos SVG (Ruleta y Slots) */
         .game-item svg { width: 50px; height: 50px; margin-bottom: 10px; fill: var(--gold); }
         
-        .game-item b { font-size: 12px; letter-spacing: 1px; }
+        .game-item b { font-size: 12px; letter-spacing: 1px; text-align: center; }
 
         .game-full {
             grid-column: span 2;
@@ -136,6 +142,10 @@
             💰 ¿Necesitas saldo? <b>Toca aquí para WhatsApp</b>
         </div>
 
+        <div class="banner-recarga banner-retiro" onclick="window.open('https://wa.me/573204491926?text=Hola,%20deseo%20retirar%20mis%20ganancias', '_blank')">
+            💸 ¿Quieres retirar? <b>Toca aquí para Retirar</b>
+        </div>
+
         <div class="menu-grid">
             <div class="game-item" onclick="irAlJuego('bingo.html')">
                 <span class="emoji">🎱</span><b>BINGO</b>
@@ -162,11 +172,15 @@
                     <text x="8" y="14" fill="#00e676" font-size="6" font-weight="bold" font-family="monospace">777</text>
                     <circle cx="12" cy="18" r="1" fill="#FFD700"/>
                 </svg>
-                <b>TRAGA MONEDAS</b>
+                <b>TRAGAMONEDAS</b>
             </div>
 
-            <div class="game-item game-full" onclick="irAlJuego('caballos.html')">
-                <span class="emoji">🏇</span><b>CARRERA DE CABALLOS</b>
+            <div class="game-item" onclick="irAlJuego('raspa.html')">
+                <span class="emoji">🍀</span><b>RASPA Y GANA</b>
+            </div>
+
+            <div class="game-item" onclick="irAlJuego('caballos.html')">
+                <span class="emoji">🏇</span><b>CABALLOS</b>
             </div>
         </div>
 
