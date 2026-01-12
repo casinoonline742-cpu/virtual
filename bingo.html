@@ -145,10 +145,10 @@
     <div id="overlay-espera" class="overlay-msg" style="background: rgba(5, 19, 26, 0.98);">
         <h1 style="color: orange; margin:0; font-size: 4em;">⚠️</h1>
         <h2 style="color: white; margin: 10px 0;">FALTAN JUGADORES</h2>
-        <p style="color:#ccc; font-size: 1.2em;">Se requieren mínimo 2 jugadores para iniciar.</p>
+        <p style="color:#ccc; font-size: 1.2em;">Se requieren mínimo 2 jugadores.</p>
         
         <div style="margin: 20px 0; font-size: 1.5em; color: #ff5252; font-weight:bold;">
-            Cierre de sala en: <span id="cancel-timer" style="color: white; font-size: 1.2em;">60</span>s
+            Cierre de sala en: <span id="cancel-timer" style="color: white; font-size: 1.2em;">--</span>s
         </div>
 
         <p style="color: gold; font-size:0.9em; margin-bottom: 30px;">
@@ -2525,12 +2525,11 @@
         const TIEMPO_ESPERA_INICIO = 15; // segundos para iniciar
         const TIEMPO_ENTRE_BALOTAS = 7000; // 7 segundos
 
-        // 4. INICIO Y AUTENTICACIÓN SEGURO (CORREGIDO)
+        // 4. INICIO Y AUTENTICACIÓN SEGURO
         auth.onAuthStateChanged(async u => {
             if(u) {
                 usuario = u;
                 
-                // Deshabilitar botón mientras cargamos para evitar errores
                 const btn = document.getElementById('btn-comprar');
                 if(btn) {
                     btn.disabled = true;
@@ -2542,15 +2541,15 @@
                     document.getElementById('miSaldo').innerText = "$ " + saldo.toLocaleString();
                 });
 
-                // 1. PRIMERO: Verificar si ya estoy en la mesa
+                // Primero verificar DB
                 await verificarSiYaEstabaJugando();
                 
-                // 2. LUEGO: Activar lógica
+                // Luego activar lógica
                 initTableroMaestro(); 
                 intentarSerMaestro(); 
                 escucharEstado();
 
-                // 3. DETECTOR DE SALIDA FORZADA
+                // Detector de desconexión
                 db.ref('bingo_jugadores/' + u.uid).on('value', snapshot => {
                     if (miCarton && !snapshot.exists()) {
                         miCarton = null;
@@ -2566,16 +2565,13 @@
         async function verificarSiYaEstabaJugando() {
             const snap = await db.ref('bingo_jugadores/' + usuario.uid).get();
             if (snap.exists()) {
-                // SÍ ESTÁ JUGANDO: Cargar todo antes de mostrar nada
                 const data = snap.val();
                 miCarton = data.carton;
                 dibujarMiCarton(miCarton);
                 
-                // Ocultar pago inmediatamente
                 document.getElementById('pantalla-pago').style.display = 'none';
                 document.getElementById('interfaz-juego').style.display = 'block';
             } else {
-                // NO ESTÁ JUGANDO: Habilitar compra
                 const btn = document.getElementById('btn-comprar');
                 btn.disabled = false;
                 btn.innerText = "JUGAR AHORA";
@@ -2694,7 +2690,7 @@
             }
         }
 
-        // 6. LÓGICA DE INTERFAZ (CLIENTES)
+        // 6. LÓGICA DE INTERFAZ (CLIENTES) - CORREGIDA
         function escucharEstado() {
             db.ref('bingo_estado').on('value', snap => {
                 const st = snap.val();
@@ -2731,31 +2727,45 @@
                 if (st.fase === 'INSUFICIENTE') {
                     if(intervaloTimer) clearInterval(intervaloTimer);
 
-                    // Si ya tengo cartón (YA PAGUÉ), muestro la interfaz pero con el letrero de espera encima
+                    const actualizarConteo = () => {
+                        const ahora = Date.now();
+                        // CORRECCIÓN MATEMÁTICA: Usamos el timestamp fijo del servidor
+                        let fin = st.cancelTimestamp;
+                        if (!fin) return; // Si no hay fecha, no calculamos
+
+                        const restantes = Math.max(0, Math.ceil((fin - ahora) / 1000));
+                        
+                        // 1. Actualiza el Overlay Negro
+                        const elTimer = document.getElementById('cancel-timer');
+                        if(elTimer) elTimer.innerText = restantes;
+
+                        // 2. Actualiza el Texto Amarillo en Pantalla de Pago
+                        const elStatusPago = document.getElementById('msg-status');
+                        if(elStatusPago) {
+                             if (restantes > 0) {
+                                 elStatusPago.innerHTML = `Esperando... Cierre en <span style="color:white">${restantes}s</span>`;
+                             } else {
+                                 elStatusPago.innerText = "Cancelando sala...";
+                             }
+                        }
+
+                        if (restantes <= 0) clearInterval(intervaloTimer);
+                    };
+
+                    actualizarConteo();
+                    intervaloTimer = setInterval(actualizarConteo, 1000);
+
+                    // PANTALLAS
                     if (miCarton) {
                         document.getElementById('pantalla-pago').style.display = 'none';
                         document.getElementById('interfaz-juego').style.display = 'block';
-                        document.getElementById('overlay-espera').style.display = 'flex'; // LETRERO
-
-                        // Conteo visual
-                        intervaloTimer = setInterval(() => {
-                            const ahora = Date.now();
-                            const fin = st.cancelTimestamp || (ahora + 60000); 
-                            const restantes = Math.max(0, Math.ceil((fin - ahora) / 1000));
-                            const elTimer = document.getElementById('cancel-timer');
-                            if(elTimer) elTimer.innerText = restantes;
-                            if (restantes <= 0) clearInterval(intervaloTimer);
-                        }, 1000);
-
+                        document.getElementById('overlay-espera').style.display = 'flex'; 
                     } else {
-                        // NO HE APOSTADO
                         document.getElementById('pantalla-pago').style.display = 'block';
                         document.getElementById('interfaz-juego').style.display = 'none';
                         document.getElementById('overlay-espera').style.display = 'none';
                         
-                        document.getElementById('msg-status').innerText = "Esperando jugadores...";
                         const btn = document.getElementById('btn-comprar');
-                        // Solo habilitar si NO tengo cartón
                         if (!miCarton) {
                             btn.disabled = false;
                             btn.innerText = "JUGAR AHORA";
@@ -2821,6 +2831,9 @@
                         db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
                         db.ref('bingo_jugadores/'+usuario.uid).remove();
                         miCarton = null;
+                    } else {
+                         document.getElementById('msg-status').innerText = "Sala cancelada. Reiniciando...";
+                         setTimeout(() => location.reload(), 3000);
                     }
                 }
             });
@@ -2860,13 +2873,11 @@
 
         // 7. ACCIONES
         function comprarCarton() {
-            // Protección extra: si ya tiene cartón, no hace nada
             if (miCarton) return; 
 
             if(saldo < COSTO) return alert("Saldo insuficiente");
             if(cartones.length === 0) return alert("Error: No hay cartones cargados.");
 
-            // Bloqueo inmediato visual
             document.getElementById('btn-comprar').disabled = true;
             document.getElementById('btn-comprar').innerText = "ESPERANDO...";
 
@@ -2879,7 +2890,6 @@
                 carton: c
             }).then(() => {
                 dibujarMiCarton(c);
-                // No cambiamos pantallas aquí, dejamos que escucharEstado() detecte el cambio
             });
         }
 
