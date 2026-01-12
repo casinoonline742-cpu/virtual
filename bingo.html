@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bingo Casino - Estricto 7s</title>
+    <title>Bingo Casino - Tiempo Estricto</title>
     <style>
         /* --- ESTILOS GENERALES --- */
         body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #05131a; color: white; text-align: center; margin: 0; padding: 0; padding-bottom: 120px; user-select: none; }
@@ -180,7 +180,7 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
-        // 2. DATOS DE CARTONES (PEGA AQUÍ LOS TUS CARTONES)
+        // 2. DATOS DE CARTONES (¡¡¡ PEGA AQUÍ TUS CARTONES !!!)
         const cartones = [
   { "id": "1090445448", "carton": 1, "numeros": [11,9,6,13,8,20,29,19,30,17,40,43,0,33,38,50,59,47,48,49,75,64,69,66,62] },
   { "id": "1090457831", "carton": 2, "numeros": [5,12,10,3,4,24,22,18,28,23,39,42,0,41,35,52,58,56,57,53,72,71,63,70,73] },
@@ -2508,10 +2508,13 @@
         let saldo = 0;
         let miCarton = null;
         let numerosCantadosGlobal = [];
-        let soyElMaestroLocal = false; // Evita doble ejecución en la misma pestaña
+        let soyElMaestro = false;
+        let intervaloTimer = null;
+        
         const COSTO = 500;
-        const TIEMPO_CIERRE_SALA = 60; 
-        const TIEMPO_ENTRE_BALOTAS = 7000; // 7000 ms estricto
+        const TIEMPO_CIERRE_SALA = 60; // segundos
+        const TIEMPO_ESPERA_INICIO = 15; // segundos para iniciar juego
+        const TIEMPO_ENTRE_BALOTAS = 7000; // 7 segundos exactos
 
         // 4. INICIO Y AUTENTICACIÓN
         auth.onAuthStateChanged(u => {
@@ -2523,14 +2526,14 @@
                 });
                 
                 initTableroMaestro(); 
-                gestionarCerebro();
-                escucharEstado();
+                intentarSerMaestro(); // Logica de elección de líder
+                escucharEstado();     // Escuchar cambios de la DB
                 verificarSiYaEstabaJugando();
 
-                // DETECTOR DE REINICIO: Si me borran, volver al lobby
+                // DETECTOR DE FIN DE JUEGO (SI EL SERVIDOR NOS BORRA)
                 db.ref('bingo_jugadores/' + u.uid).on('value', snapshot => {
                     if (miCarton && !snapshot.exists()) {
-                        console.log("Juego terminado. Volviendo a lobby...");
+                        console.log("Salida forzosa detectada.");
                         miCarton = null;
                         document.getElementById('interfaz-juego').style.display = 'none';
                         document.getElementById('pantalla-pago').style.display = 'block';
@@ -2545,14 +2548,13 @@
             }
         });
 
-        // 5. RESTAURAR SESIÓN
+        // 5. RESTAURAR SESIÓN LOCAL
         async function verificarSiYaEstabaJugando() {
             const snap = await db.ref('bingo_jugadores/' + usuario.uid).get();
             if (snap.exists()) {
                 const data = snap.val();
                 miCarton = data.carton;
                 dibujarMiCarton(miCarton);
-                
                 document.getElementById('pantalla-pago').style.display = 'none';
                 document.getElementById('interfaz-juego').style.display = 'block';
                 document.getElementById('pantalla-juego').style.display = 'block';
@@ -2565,149 +2567,291 @@
             }
         }
 
-        // 6. CEREBRO DEL JUEGO (SERVIDOR)
-        function gestionarCerebro() {
-            const ref = db.ref('server_bingo/master');
-            ref.onDisconnect().remove();
-            ref.transaction(curr => { return curr === null ? usuario.uid : curr; }, (err, comm, snap) => {
-                if(comm && snap.val() === usuario.uid) {
-                    if(!soyElMaestroLocal) {
-                        soyElMaestroLocal = true;
-                        console.log("--- ERES EL MAESTRO DE LA SALA ---");
-                        cicloDeJuego();
-                    }
+        // --- 6. LÓGICA DEL MAESTRO (EL CEREBRO DISTRIBUIDO) ---
+        function intentarSerMaestro() {
+            const refMaster = db.ref('server_bingo/master');
+            refMaster.onDisconnect().remove(); 
+
+            // Transacción para asegurar que solo haya 1 maestro
+            refMaster.transaction(current => {
+                if (current === null) return usuario.uid; 
+                return current; 
+            }, (error, committed, snapshot) => {
+                if (committed && snapshot.val() === usuario.uid) {
+                    soyElMaestro = true;
+                    console.log("👑 SOY EL MAESTRO DE LA SALA (CEREBRO) 👑");
+                    loopMaestro();
+                } else {
+                    console.log("👁️ Soy un jugador normal");
+                    // Si el maestro se va, intentamos tomar el control
+                    refMaster.on('value', snap => {
+                        if (!snap.exists()) intentarSerMaestro(); 
+                    });
                 }
             });
         }
 
-        async function cicloDeJuego() {
-            while(true) {
-                const snapEstado = await db.ref('bingo_estado').get();
-                let estadoActual = snapEstado.val();
-                let bolsa = [];
-                
-                if (estadoActual && estadoActual.fase === 'JUGANDO' && !estadoActual.ganador) {
-                    console.log("Reanudando juego...");
-                    const salieron = estadoActual.historial || [];
-                    bolsa = Array.from({length: 75}, (_, i) => i + 1).filter(n => !salieron.includes(n));
-                } 
-                else {
-                    // --- FASE 1: ESPERA DE JUGADORES ---
-                    let jugadoresSnap = await db.ref('bingo_jugadores').once('value');
-                    let numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
-                    let tiempoEspera = 0;
+        // BUCLE PRINCIPAL (SOLO CORRE EN 1 NAVEGADOR)
+        async function loopMaestro() {
+            while (soyElMaestro) {
+                try {
+                    // 1. LEER ESTADO ACTUAL (NO SOBRESCRIBIR POR ERROR)
+                    const snap = await db.ref('bingo_estado').get();
+                    let estado = snap.val();
 
-                    while (numJugadores < 2) {
-                        let tiempoRestante = TIEMPO_CIERRE_SALA - tiempoEspera;
-                        await db.ref('bingo_estado').update({ 
+                    // CASO A: INICIALIZAR SI NO EXISTE
+                    if (!estado) {
+                        await db.ref('bingo_estado').set({ 
                             fase: 'INSUFICIENTE', 
-                            tiempo: 0,
-                            cancelTimer: tiempoRestante 
+                            cancelTimestamp: Date.now() + (TIEMPO_CIERRE_SALA * 1000) 
                         });
+                        continue;
+                    }
 
-                        if(tiempoRestante <= 0) {
-                            await db.ref('bingo_estado').update({ fase: 'CANCELADO' });
-                            await new Promise(r => setTimeout(r, 5000));
-                            await db.ref('bingo_estado').remove(); 
-                            tiempoEspera = 0; 
-                            continue; 
+                    // CASO B: ESPERANDO JUGADORES
+                    if (estado.fase === 'INSUFICIENTE') {
+                        const jugSnap = await db.ref('bingo_jugadores').get();
+                        const num = jugSnap.exists() ? jugSnap.numChildren() : 0;
+
+                        if (num >= 2) {
+                            // HAY SUFICIENTES -> INICIAR CUENTA REGRESIVA
+                            await db.ref('bingo_estado').update({
+                                fase: 'ESPERA',
+                                startTimestamp: Date.now() + (TIEMPO_ESPERA_INICIO * 1000)
+                            });
+                        } else {
+                            // VERIFICAR TIEMPO DE CANCELACIÓN
+                            if (Date.now() > estado.cancelTimestamp) {
+                                await db.ref('bingo_estado').update({ fase: 'CANCELADO' });
+                                await new Promise(r => setTimeout(r, 5000));
+                                await db.ref('bingo_estado').remove(); 
+                            }
+                        }
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+
+                    // CASO C: CUENTA REGRESIVA
+                    else if (estado.fase === 'ESPERA') {
+                        // El maestro solo verifica si el tiempo ya pasó
+                        if (Date.now() > estado.startTimestamp) {
+                            // INICIAR JUEGO
+                            const keys = Object.keys(PATRONES);
+                            const fig = keys[Math.floor(Math.random() * keys.length)];
+                            await db.ref('bingo_estado').update({
+                                fase: 'JUGANDO',
+                                patron: fig,
+                                historial: [],
+                                ultima: null,
+                                ganador: null,
+                                nextBallTimestamp: 0 // Inmediato
+                            });
+                        }
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+
+                    // CASO D: JUGANDO (DICTAR BALOTAS CON TIEMPO ESTRICTO)
+                    else if (estado.fase === 'JUGANDO') {
+                        if (estado.ganador) {
+                            // SI YA HAY GANADOR, ESPERAR Y REINICIAR
+                            await new Promise(r => setTimeout(r, 8000));
+                            await db.ref('bingo_estado').remove();
+                            await db.ref('bingo_jugadores').remove();
+                            continue;
                         }
 
-                        await new Promise(r => setTimeout(r, 1000));
-                        tiempoEspera++;
-                        jugadoresSnap = await db.ref('bingo_jugadores').once('value');
-                        numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
+                        // VERIFICAR SI TOCA SACAR BALOTA (TIMESTAMP)
+                        if (!estado.nextBallTimestamp || Date.now() >= estado.nextBallTimestamp) {
+                            
+                            const historial = estado.historial || [];
+                            const bolsa = Array.from({length: 75}, (_, i) => i + 1).filter(n => !historial.includes(n));
+
+                            if (bolsa.length === 0) {
+                                // FIN DE BALOTAS SIN GANADOR
+                                await db.ref('bingo_estado').remove();
+                                await db.ref('bingo_jugadores').remove();
+                                continue;
+                            }
+
+                            // SACAR NUEVA
+                            const nuevaBalota = bolsa[Math.floor(Math.random() * bolsa.length)];
+                            historial.push(nuevaBalota);
+
+                            // ACTUALIZAR DB: PROXIMA HORA = AHORA + 7 SEGUNDOS
+                            await db.ref('bingo_estado').update({
+                                ultima: nuevaBalota,
+                                historial: historial,
+                                nextBallTimestamp: Date.now() + TIEMPO_ENTRE_BALOTAS
+                            });
+                        }
+                        
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                    
+                    // CASO E: CANCELADO
+                    else if (estado.fase === 'CANCELADO') {
+                         await new Promise(r => setTimeout(r, 5000));
+                         await db.ref('bingo_estado').remove();
+                         await db.ref('bingo_jugadores').remove();
                     }
 
-                    // --- FASE 2: CUENTA REGRESIVA ---
-                    await db.ref('bingo_estado').set({ fase: 'ESPERA', tiempo: 15 });
-                    for(let i=15; i>0; i--) {
-                        await db.ref('bingo_estado/tiempo').set(i);
-                        await new Promise(r => setTimeout(r, 1000));
-                    }
-
-                    // --- FASE 3: INICIO ---
-                    const keys = Object.keys(PATRONES);
-                    const fig = keys[Math.floor(Math.random() * keys.length)];
-                    await db.ref('bingo_estado').update({ 
-                        fase: 'JUGANDO', 
-                        patron: fig, 
-                        historial: [], 
-                        ultima: null, 
-                        ganador: null,
-                        timestamp: 0 // Reset timestamp
-                    });
-                    bolsa = Array.from({length: 75}, (_, i) => i + 1);
+                } catch (e) {
+                    console.error("Error maestro:", e);
+                    await new Promise(r => setTimeout(r, 2000));
                 }
-
-                // --- FASE 4: BUCLE ESTRICTO DE BALOTAS ---
-                while(bolsa.length > 0) {
-                    let checkWin = await db.ref('bingo_estado/ganador').get();
-                    if(checkWin.exists()) break; 
-
-                    // 1. REVISAR TIMESTAMP EN DB PARA EVITAR ACELERACIÓN
-                    // Esto evita que si tienes 2 pestañas abiertas, el juego vaya el doble de rápido.
-                    let checkTimeSnap = await db.ref('bingo_estado/timestamp').get();
-                    let lastTime = checkTimeSnap.val() || 0;
-                    let now = Date.now();
-                    let diff = now - lastTime;
-
-                    if (diff < TIEMPO_ENTRE_BALOTAS) {
-                        // Si intentamos sacar balota antes de tiempo, esperamos lo que falta
-                        let waitTime = TIEMPO_ENTRE_BALOTAS - diff;
-                        console.log(`Protección de tiempo: Esperando ${waitTime}ms...`);
-                        await new Promise(r => setTimeout(r, waitTime));
-                    }
-
-                    // 2. SACAR BALOTA
-                    const idx = Math.floor(Math.random() * bolsa.length);
-                    const n = bolsa.splice(idx, 1)[0];
-                    
-                    let snapH = await db.ref('bingo_estado/historial').get();
-                    let hist = snapH.val() || [];
-                    hist.push(n);
-
-                    // 3. GUARDAR CON TIMESTAMP ACTUAL
-                    await db.ref('bingo_estado').update({ 
-                        ultima: n, 
-                        historial: hist,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP 
-                    });
-                    
-                    // 4. ESPERA LOCAL (Para no saturar la CPU)
-                    await new Promise(r => setTimeout(r, TIEMPO_ENTRE_BALOTAS)); 
-                    
-                    checkWin = await db.ref('bingo_estado/ganador').get();
-                    if(checkWin.exists()) break;
-                }
-
-                // --- FINAL ---
-                const finalCheck = await db.ref('bingo_estado/ganador').get();
-                if(finalCheck.exists()) {
-                    await new Promise(r => setTimeout(r, 8000)); 
-                }
-                
-                // Reiniciar sala completamente
-                await db.ref('bingo_estado').remove(); 
-                await db.ref('bingo_jugadores').remove(); 
             }
         }
 
-        // 7. FUNCIONES DE JUGADOR (Validación Segura)
+        // --- 7. INTERFAZ Y EVENTOS (CLIENTES) ---
+        function escucharEstado() {
+            db.ref('bingo_estado').on('value', snap => {
+                const st = snap.val();
+                
+                if(!st) {
+                    if (intervaloTimer) clearInterval(intervaloTimer);
+                    return;
+                }
+
+                // JUGADORES EN SALA
+                db.ref('bingo_jugadores').on('value', js => {
+                    const n = js ? js.numChildren() : 0;
+                    document.getElementById('contador-jugadores').innerText = "Jugadores en sala: " + n;
+                    const total = n * COSTO;
+                    const premio = total * 0.80;
+                    document.getElementById('pozo-acumulado').innerText = "$" + premio.toLocaleString();
+                    document.getElementById('dash-premio').innerText = "$" + premio.toLocaleString();
+
+                    const lista = document.getElementById('lista-jugadores');
+                    lista.innerHTML = ""; 
+                    if(js) {
+                        js.forEach(childSnapshot => {
+                            const p = childSnapshot.val();
+                            const li = document.createElement('li');
+                            li.className = 'player-item';
+                            if(childSnapshot.key === usuario.uid) li.classList.add('me');
+                            li.innerText = p.nombre;
+                            lista.appendChild(li);
+                        });
+                    }
+                });
+
+                // MANEJO DE FASES DE INTERFAZ
+                if (st.fase === 'INSUFICIENTE') {
+                    if(intervaloTimer) clearInterval(intervaloTimer);
+                    if (miCarton) {
+                        document.getElementById('overlay-espera').style.display = 'flex';
+                        const restantes = Math.max(0, Math.ceil((st.cancelTimestamp - Date.now()) / 1000));
+                        document.getElementById('cancel-timer').innerText = restantes;
+                    } else {
+                        document.getElementById('msg-status').innerText = "Esperando jugadores...";
+                    }
+                }
+                else if (st.fase === 'ESPERA') {
+                    document.getElementById('overlay-espera').style.display = 'none';
+                    resetMesa();
+                    
+                    // Renderizado local del tiempo (independiente del maestro)
+                    if(intervaloTimer) clearInterval(intervaloTimer);
+                    intervaloTimer = setInterval(() => {
+                        const segs = Math.max(0, Math.ceil((st.startTimestamp - Date.now()) / 1000));
+                        document.getElementById('msg-status').innerText = "⏳ Inicia en " + segs + "s";
+                        if(miCarton) {
+                            document.getElementById('lbl-letra').innerText = "TIEMPO";
+                            document.getElementById('lbl-numero').innerText = segs;
+                        }
+                        if(segs <= 0) clearInterval(intervaloTimer);
+                    }, 200);
+
+                    if(miCarton) {
+                        document.getElementById('pantalla-pago').style.display = 'none';
+                        document.getElementById('interfaz-juego').style.display = 'block';
+                        document.getElementById('btn-gritar').style.opacity = "0.5";
+                        document.getElementById('btn-gritar').style.pointerEvents = "none";
+                    } else {
+                        document.getElementById('pantalla-pago').style.display = 'block';
+                        document.getElementById('interfaz-juego').style.display = 'none';
+                        document.getElementById('btn-comprar').disabled = false;
+                        document.getElementById('btn-comprar').innerText = "JUGAR AHORA";
+                    }
+                }
+                else if (st.fase === 'JUGANDO') {
+                    if(intervaloTimer) clearInterval(intervaloTimer);
+                    document.getElementById('overlay-espera').style.display = 'none';
+                    
+                    if(miCarton) {
+                        document.getElementById('interfaz-juego').style.display = 'block';
+                        document.getElementById('btn-gritar').style.opacity = "1";
+                        document.getElementById('btn-gritar').style.pointerEvents = "all";
+                    }
+                    if(st.patron) {
+                        dibujarMiniFigura(PATRONES[st.patron]);
+                        document.getElementById('nombre-patron').innerText = st.patron;
+                    }
+                }
+                else if (st.fase === 'GANADOR') {
+                    document.getElementById('overlay-ganador').style.display = 'flex';
+                    document.getElementById('win-nombre').innerText = st.ganadorNombre;
+                    document.getElementById('win-premio').innerText = "$" + st.ganadorPremio.toLocaleString();
+                }
+                else if (st.fase === 'CANCELADO') {
+                    if(miCarton) {
+                        document.getElementById('overlay-espera').style.display = 'none';
+                        document.getElementById('overlay-cancelado').style.display = 'flex';
+                        db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
+                        db.ref('bingo_jugadores/'+usuario.uid).remove();
+                        miCarton = null;
+                    }
+                }
+            });
+
+            // ESCUCHA DE BALOTAS INDIVIDUALES
+            let ultimoNumeroProcesado = null;
+            db.ref('bingo_estado/ultima').on('value', snap => {
+                const n = snap.val();
+                if(n && typeof n === 'number' && n !== ultimoNumeroProcesado) {
+                    ultimoNumeroProcesado = n;
+                    numerosCantadosGlobal.push(n);
+                    
+                    const l = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
+                    document.getElementById('lbl-letra').innerText = l;
+                    document.getElementById('lbl-numero').innerText = n;
+                    document.getElementById('lbl-numero').style.fontSize = "34px";
+                    
+                    const celdaM = document.getElementById('tm-'+n);
+                    if(celdaM) celdaM.classList.add('salio');
+
+                    // VOZ
+                    if('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                        const u = new SpeechSynthesisUtterance(`${l} ... ${n}`);
+                        window.speechSynthesis.speak(u);
+                    }
+                }
+            });
+            
+            // SINCRONIZACIÓN HISTORIAL
+            db.ref('bingo_estado/historial').on('value', snap => {
+                const h = snap.val() || [];
+                h.forEach(n => {
+                    if(!numerosCantadosGlobal.includes(n)) numerosCantadosGlobal.push(n);
+                    const celdaM = document.getElementById('tm-'+n);
+                    if(celdaM) celdaM.classList.add('salio');
+                });
+            });
+        }
+
+        // 8. ACCIONES DEL JUGADOR
         async function intentarCantarBingo() {
             if(!miCarton) return;
-            
-            // 1. Descargar datos frescos del servidor
             const snapSt = await db.ref('bingo_estado').get();
             const st = snapSt.val();
             
             if(!st || st.fase !== 'JUGANDO' || st.ganador) return;
 
-            // 2. Validar contra el historial OFICIAL del servidor
             const balotasSalidas = st.historial || [];
             const patronIndices = PATRONES[st.patron];
             const misNumeros = miCarton.numeros; 
 
+            // Validación estricta con datos del servidor
             const esValido = patronIndices.every(idx => {
                 const miNumero = misNumeros[idx];
                 if(miNumero === 0) return true; 
@@ -2719,26 +2863,26 @@
                 const total = snapJugadores.numChildren() * COSTO;
                 const premioNeto = total * 0.80; 
 
-                await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + premioNeto);
-                
-                await db.ref('bingo_estado').update({
-                    fase: 'GANADOR',
-                    ganadorNombre: usuario.email.split('@')[0],
-                    ganadorPremio: premioNeto,
-                    ganador: true 
+                // Intentar ser el primero en registrar el ganador
+                await db.ref('bingo_estado/ganador').transaction(ganadorActual => {
+                    if (ganadorActual) return; // Ya ganaron
+                    
+                    // Si no hay ganador, me lo llevo yo
+                    db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + premioNeto);
+                    return true;
+                }, (error, committed) => {
+                    if (committed) {
+                        db.ref('bingo_estado').update({
+                            fase: 'GANADOR',
+                            ganadorNombre: usuario.email.split('@')[0],
+                            ganadorPremio: premioNeto
+                        });
+                    }
                 });
             } else {
                 if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                alert("❌ BINGO INCORRECTO: Faltan números según el servidor.");
+                alert("❌ BINGO INCORRECTO");
             }
-        }
-
-        async function salirYReembolsar() {
-            if(!miCarton) return;
-            await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
-            await db.ref('bingo_jugadores/'+usuario.uid).remove();
-            miCarton = null;
-            location.reload(); 
         }
 
         function comprarCarton() {
@@ -2759,123 +2903,12 @@
             document.getElementById('btn-gritar').style.display = 'flex';
         }
 
-        // 8. ESCUCHAS Y VISUALIZACIÓN
-        function escucharEstado() {
-            db.ref('bingo_estado').on('value', snap => {
-                const st = snap.val();
-                if(!st) return;
-
-                db.ref('bingo_jugadores').on('value', js => {
-                    const n = js ? js.numChildren() : 0;
-                    document.getElementById('contador-jugadores').innerText = "Jugadores en sala: " + n;
-                    const total = n * COSTO;
-                    const premio = total * 0.80;
-                    document.getElementById('pozo-acumulado').innerText = "$" + premio.toLocaleString();
-                    document.getElementById('dash-premio').innerText = "$" + premio.toLocaleString();
-
-                    const lista = document.getElementById('lista-jugadores');
-                    lista.innerHTML = ""; 
-                    if(js) {
-                        js.forEach(childSnapshot => {
-                            const p = childSnapshot.val();
-                            const li = document.createElement('li');
-                            li.className = 'player-item';
-                            if(childSnapshot.key === usuario.uid) {
-                                li.classList.add('me');
-                                li.innerText = p.nombre;
-                            } else {
-                                li.innerText = p.nombre;
-                            }
-                            lista.appendChild(li);
-                        });
-                    }
-                });
-
-                if (st.fase === 'INSUFICIENTE') {
-                    if (miCarton) {
-                        document.getElementById('overlay-espera').style.display = 'flex';
-                        if(st.cancelTimer) {
-                            document.getElementById('cancel-timer').innerText = st.cancelTimer;
-                        }
-                    } else {
-                        document.getElementById('msg-status').innerText = "Esperando más jugadores...";
-                    }
-                }
-                else if (st.fase === 'CANCELADO') {
-                    if(miCarton) {
-                        document.getElementById('overlay-espera').style.display = 'none';
-                        document.getElementById('overlay-cancelado').style.display = 'flex';
-                        db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
-                        miCarton = null; 
-                        db.ref('bingo_jugadores/'+usuario.uid).remove();
-                    }
-                }
-                else if(st.fase === 'ESPERA') {
-                    document.getElementById('overlay-espera').style.display = 'none';
-                    resetMesa();
-                    document.getElementById('msg-status').innerText = "⏳ Inicia en " + st.tiempo + "s";
-                    if(miCarton) {
-                        document.getElementById('pantalla-pago').style.display = 'none';
-                        document.getElementById('interfaz-juego').style.display = 'block';
-                        document.getElementById('lbl-letra').innerText = "TIEMPO";
-                        document.getElementById('lbl-numero').innerText = st.tiempo;
-                        document.getElementById('lbl-numero').style.fontSize = "30px";
-                        document.getElementById('btn-gritar').style.opacity = "0.5";
-                        document.getElementById('btn-gritar').style.pointerEvents = "none";
-                    } else {
-                        document.getElementById('pantalla-pago').style.display = 'block';
-                        document.getElementById('interfaz-juego').style.display = 'none';
-                        document.getElementById('btn-comprar').disabled = false;
-                        document.getElementById('btn-comprar').innerText = "JUGAR AHORA";
-                    }
-                } 
-                else if(st.fase === 'JUGANDO') {
-                    document.getElementById('overlay-espera').style.display = 'none';
-                    if(miCarton) {
-                        document.getElementById('interfaz-juego').style.display = 'block';
-                        document.getElementById('btn-gritar').style.opacity = "1";
-                        document.getElementById('btn-gritar').style.pointerEvents = "all";
-                        if(st.ultima) document.getElementById('lbl-numero').style.fontSize = "34px"; 
-                    }
-                    if(st.patron) {
-                        dibujarMiniFigura(PATRONES[st.patron]);
-                        document.getElementById('nombre-patron').innerText = st.patron;
-                    }
-                } 
-                else if(st.fase === 'GANADOR') {
-                    document.getElementById('overlay-espera').style.display = 'none';
-                    document.getElementById('overlay-ganador').style.display = 'flex';
-                    document.getElementById('win-nombre').innerText = st.ganadorNombre;
-                    document.getElementById('win-premio').innerText = "$" + st.ganadorPremio.toLocaleString();
-                }
-            });
-
-            db.ref('bingo_estado/ultima').on('value', snap => {
-                const n = snap.val();
-                if(n && typeof n === 'number') {
-                    numerosCantadosGlobal.push(n);
-                    const l = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-                    document.getElementById('lbl-letra').innerText = l;
-                    document.getElementById('lbl-numero').innerText = n;
-                    
-                    const celdaM = document.getElementById('tm-'+n);
-                    if(celdaM) celdaM.classList.add('salio');
-
-                    if('speechSynthesis' in window) {
-                        const u = new SpeechSynthesisUtterance(`${l} ... ${n}`);
-                        window.speechSynthesis.speak(u);
-                    }
-                }
-            });
-            
-            db.ref('bingo_estado/historial').on('value', snap => {
-                const h = snap.val() || [];
-                numerosCantadosGlobal = h;
-                h.forEach(n => {
-                    const celdaM = document.getElementById('tm-'+n);
-                    if(celdaM) celdaM.classList.add('salio');
-                });
-            });
+        async function salirYReembolsar() {
+            if(!miCarton) return;
+            await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
+            await db.ref('bingo_jugadores/'+usuario.uid).remove();
+            miCarton = null;
+            location.reload(); 
         }
 
         // --- AUXILIARES ---
