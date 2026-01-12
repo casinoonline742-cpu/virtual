@@ -13,36 +13,17 @@
         .saldo { color: #00e676; font-weight: bold; font-family: monospace; font-size: 1.3em; }
         .btn-salir { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.8em; cursor: pointer; }
 
-        /* DASHBOARD (Balota, Premio y Figura) */
+        /* DASHBOARD */
         .dashboard { display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; background: #0f2027; border-bottom: 1px solid #333; }
-        
-        /* Balota Grande */
-        .ball-display { 
-            width: 70px; height: 70px; 
-            background: radial-gradient(circle at 30% 30%, #e53935, #b71c1c); 
-            border-radius: 50%; border: 4px solid white; 
-            color: white; font-weight: 900; font-size: 34px; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            box-shadow: 0 0 15px rgba(229, 57, 53, 0.5);
-            animation: bounceIn 0.5s;
-        }
+        .ball-display { width: 70px; height: 70px; background: radial-gradient(circle at 30% 30%, #e53935, #b71c1c); border-radius: 50%; border: 4px solid white; color: white; font-weight: 900; font-size: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(229, 57, 53, 0.5); animation: bounceIn 0.5s; }
         .ball-letter { font-size: 12px; color: gold; margin-bottom: -5px; }
         @keyframes bounceIn { 0%{transform:scale(0);} 60%{transform:scale(1.1);} 100%{transform:scale(1);} }
 
-        /* Caja de Premio en el Juego (NUEVO) */
-        .prize-box {
-            text-align: center;
-            background: rgba(0,0,0,0.3);
-            padding: 5px 10px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            flex-grow: 1; /* Ocupa espacio disponible */
-            margin: 0 10px;
-        }
+        /* Caja de Premio */
+        .prize-box { text-align: center; background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 8px; border: 1px solid #333; flex-grow: 1; margin: 0 10px; }
         .prize-title { font-size: 10px; color: #aaa; letter-spacing: 1px; }
         .prize-value { font-size: 1.4em; color: #00e676; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px rgba(0, 230, 118, 0.3); }
 
-        /* Mini Figura */
         .pattern-box { text-align: center; }
         .mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); width: 45px; height: 45px; gap: 1px; border: 1px solid #555; }
         .celda-m { background: #222; }
@@ -56,7 +37,7 @@
         .num-mini { width: 25px; height: 25px; background: #222; color: #555; border: 1px solid #333; font-size: 10px; margin-right: 1px; display: flex; align-items: center; justify-content: center; border-radius: 2px; }
         .num-mini.salio { background: #FFD700; color: black; font-weight: bold; border-color: white; }
 
-        /* CARTÓN */
+        /* PANTALLA JUEGO */
         #pantalla-juego { display: none; padding: 10px; animation: slideUp 0.5s; }
         @keyframes slideUp { from {transform: translateY(20px); opacity:0;} to {transform: translateY(0); opacity:1;} }
         .carton-frame { background: #fff; padding: 5px; border-radius: 10px; border: 4px solid #0277bd; max-width: 360px; margin: 0 auto; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
@@ -68,7 +49,16 @@
         .grid-cell.marked::after { content: "X"; font-size: 1.5em; color: rgba(255,255,255,0.4); position: absolute; }
         .grid-cell.free { background: #FFD700 !important; color: black !important; font-size: 1.2em; }
 
-        /* BOTONES Y PANTALLAS */
+        /* LISTA JUGADORES */
+        .players-list-container { margin-top: 20px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 10px; max-width: 360px; margin-left: auto; margin-right: auto; text-align: left; border: 1px solid #333; }
+        .players-list-header { font-size: 0.9em; color: #aaa; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
+        #lista-jugadores { list-style: none; padding: 0; margin: 0; max-height: 120px; overflow-y: auto; }
+        .player-item { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; color: #ddd; display: flex; align-items: center; }
+        .player-item::before { content: "👤"; margin-right: 8px; font-size: 1.1em; }
+        .player-item.me { color: gold; font-weight: bold; }
+        .player-item.me::after { content: "(Tú)"; margin-left: 5px; font-size: 0.8em; color: #00e676; }
+
+        /* BOTONES */
         .btn-bingo-float { position: fixed; bottom: 20px; right: 20px; background: radial-gradient(circle, #d50000, #b71c1c); border: 4px solid white; color: white; width: 80px; height: 80px; border-radius: 50%; font-weight: 900; font-size: 16px; box-shadow: 0 5px 20px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; animation: pulseBtn 1.5s infinite; display: none; }
         .btn-bingo-float:active { transform: scale(0.9); }
         @keyframes pulseBtn { 0% {transform:scale(1);} 50% {transform:scale(1.05);} 100% {transform:scale(1);} }
@@ -135,6 +125,11 @@
                 <div id="celdas-container" class="carton-grid" style="border-top:none;"></div>
             </div>
             <p style="color:#666; font-size:0.8em; margin-top:5px;">Debes marcar las balotas con tu dedo.</p>
+
+            <div class="players-list-container">
+                <div class="players-list-header">Jugadores en Sala</div>
+                <ul id="lista-jugadores"></ul>
+            </div>
         </div>
 
         <div id="btn-gritar" class="btn-bingo-float" onclick="intentarCantarBingo()">¡BINGO!</div>
@@ -150,11 +145,20 @@
     <div id="overlay-espera" class="overlay-msg" style="background: rgba(5, 19, 26, 0.98);">
         <h1 style="color: orange; margin:0;">⚠️</h1>
         <h2>FALTAN JUGADORES</h2>
-        <p style="color:#ccc; max-width: 80%;">Se requieren mínimo 2 jugadores para iniciar la partida.</p>
-        <p style="color: gold;">¿Deseas esperar o retirar tu apuesta?</p>
+        <p style="color:#ccc; max-width: 80%;">Se requieren mínimo 2 jugadores.</p>
+        <p style="color: #ff5252; font-weight:bold;">Cierre de sala en: <span id="cancel-timer">60</span>s</p>
+        <p style="color: gold; font-size:0.8em;">Si la sala cierra, se reembolsará tu dinero.</p>
         
         <button class="btn-pay" onclick="document.getElementById('overlay-espera').style.display = 'none'">SEGUIR ESPERANDO</button>
         <button class="btn-secondary" onclick="salirYReembolsar()">SALIR Y REEMBOLSAR</button>
+    </div>
+
+    <div id="overlay-cancelado" class="overlay-msg">
+        <h1 style="color:#ff5252; margin:0;">⛔</h1>
+        <h2>SALA CERRADA</h2>
+        <p style="color:#ccc;">No ingresaron suficientes jugadores.</p>
+        <h3 style="color:gold;">Tu dinero ha sido reembolsado.</h3>
+        <button class="btn-pay" onclick="location.reload()">VOLVER AL INICIO</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -176,7 +180,7 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
-        // 2. DATOS DE CARTONES (Resumido, asegurate de tener todos tus cartones cargados)
+        // 2. DATOS DE CARTONES (Resumido)
         const cartones = [
   { "id": "1090445448", "carton": 1, "numeros": [11,9,6,13,8,20,29,19,30,17,40,43,0,33,38,50,59,47,48,49,75,64,69,66,62] },
   { "id": "1090457831", "carton": 2, "numeros": [5,12,10,3,4,24,22,18,28,23,39,42,0,41,35,52,58,56,57,53,72,71,63,70,73] },
@@ -2484,6 +2488,7 @@
   { "id": "3343", "carton": 3343, "numeros": [5,10,1,14,12,17,19,26,29,25,43,31,0,32,39,49,50,58,48,59,64,73,62,65,75] },
 ];
 
+
         // 3. PATRONES
         const PATRONES = {
             'LLENO': [0,1,2,3,4, 5,6,7,8,9, 10,11,12,13,14, 15,16,17,18,19, 20,21,22,23,24],
@@ -2504,26 +2509,20 @@
         let miCarton = null;
         let numerosCantadosGlobal = [];
         const COSTO = 500;
+        const TIEMPO_CIERRE_SALA = 60; // 60 segundos para cancelar si no hay gente
 
         // 4. INICIO Y AUTENTICACIÓN
         auth.onAuthStateChanged(u => {
             if(u) {
                 usuario = u;
-                // Escuchar saldo
                 db.ref('usuarios/'+u.uid).on('value', s => {
                     saldo = s.val() ? (s.val().saldo || 0) : 0;
                     document.getElementById('miSaldo').innerText = "$ " + saldo.toLocaleString();
                 });
                 
                 initTableroMaestro(); 
-                
-                // Intento ser el cerebro, si se recarga, la lógica dentro gestiona la recuperación
                 gestionarCerebro();
-                
-                // Escuchar cambios visuales
                 escucharEstado();
-                
-                // Recuperar mi cartón si ya estaba jugando
                 verificarSiYaEstabaJugando();
 
             } else {
@@ -2531,7 +2530,7 @@
             }
         });
 
-        // 5. RESTAURAR SESIÓN DEL JUGADOR
+        // 5. RESTAURAR SESIÓN (CORREGIDO PARA MOSTRAR ESPERA)
         async function verificarSiYaEstabaJugando() {
             const snap = await db.ref('bingo_jugadores/' + usuario.uid).get();
             if (snap.exists()) {
@@ -2539,28 +2538,27 @@
                 miCarton = data.carton;
                 dibujarMiCarton(miCarton);
                 
+                // Si tengo cartón, SIEMPRE muestro la interfaz de juego
                 document.getElementById('pantalla-pago').style.display = 'none';
                 document.getElementById('interfaz-juego').style.display = 'block';
                 document.getElementById('pantalla-juego').style.display = 'block';
                 document.getElementById('btn-gritar').style.display = 'flex';
                 
+                // Pero si el estado es INSUFICIENTE, muestro el overlay encima
                 const estadoSnap = await db.ref('bingo_estado').get();
-                if(estadoSnap.exists() && (estadoSnap.val().fase === 'ESPERA' || estadoSnap.val().fase === 'INSUFICIENTE')) {
-                     document.getElementById('interfaz-juego').style.display = 'none';
-                     document.getElementById('pantalla-pago').style.display = 'block';
-                     document.getElementById('btn-comprar').innerText = "CARTÓN COMPRADO";
-                     document.getElementById('btn-comprar').disabled = true;
+                if(estadoSnap.exists() && estadoSnap.val().fase === 'INSUFICIENTE') {
+                     document.getElementById('overlay-espera').style.display = 'flex';
                 }
             }
         }
 
-        // 6. CEREBRO DEL JUEGO (AUTOMÁTICO)
+        // 6. CEREBRO DEL JUEGO (SERVIDOR)
         function gestionarCerebro() {
             const ref = db.ref('server_bingo/master');
             ref.onDisconnect().remove();
             ref.transaction(curr => { return curr === null ? usuario.uid : curr; }, (err, comm, snap) => {
                 if(comm && snap.val() === usuario.uid) {
-                    console.log("--- MODULO MAESTRO ACTIVO (CONTROL TOTAL) ---");
+                    console.log("--- MODULO MAESTRO ACTIVO ---");
                     cicloDeJuego();
                 }
             });
@@ -2568,47 +2566,64 @@
 
         async function cicloDeJuego() {
             while(true) {
-                // A. VERIFICAR SI HAY JUEGO EN CURSO (RESUMIR)
                 const snapEstado = await db.ref('bingo_estado').get();
                 let estadoActual = snapEstado.val();
-                
                 let bolsa = [];
                 
                 if (estadoActual && estadoActual.fase === 'JUGANDO' && !estadoActual.ganador) {
-                    console.log("⚠️ Juego en curso detectado. Reanudando...");
+                    console.log("Reanudando juego...");
                     const salieron = estadoActual.historial || [];
                     bolsa = Array.from({length: 75}, (_, i) => i + 1).filter(n => !salieron.includes(n));
                 } 
                 else {
-                    // SI NO HAY JUEGO, EMPEZAMOS FLUJO NORMAL
-                    
-                    // 1. ESPERAR MÍNIMO 2 JUGADORES
+                    // INICIO NUEVO JUEGO
+                    // 1. FASE ESPERA JUGADORES CON TIMEOUT
                     let jugadoresSnap = await db.ref('bingo_jugadores').once('value');
                     let numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
+                    let tiempoEspera = 0;
 
+                    // Esperamos mientras haya menos de 2 jugadores
                     while (numJugadores < 2) {
-                        await db.ref('bingo_estado').update({ fase: 'INSUFICIENTE', tiempo: 0 });
-                        await new Promise(r => setTimeout(r, 2000));
+                        // Actualizamos el estado con el tiempo restante para cancelar
+                        let tiempoRestante = TIEMPO_CIERRE_SALA - tiempoEspera;
+                        
+                        await db.ref('bingo_estado').update({ 
+                            fase: 'INSUFICIENTE', 
+                            tiempo: 0,
+                            cancelTimer: tiempoRestante 
+                        });
+
+                        // Si se acabó el tiempo, CANCELAMOS LA PARTIDA
+                        if(tiempoRestante <= 0) {
+                            await db.ref('bingo_estado').update({ fase: 'CANCELADO' });
+                            await new Promise(r => setTimeout(r, 5000)); // Esperar a que los clientes se reembolsen
+                            await db.ref('bingo_estado').remove(); // Limpiar todo
+                            tiempoEspera = 0; // Reiniciar loop local
+                            continue; // Volver al inicio del while(true)
+                        }
+
+                        await new Promise(r => setTimeout(r, 1000));
+                        tiempoEspera++;
+                        
                         jugadoresSnap = await db.ref('bingo_jugadores').once('value');
                         numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
                     }
 
-                    // 2. CUENTA REGRESIVA
+                    // 2. CUENTA REGRESIVA DE INICIO
                     await db.ref('bingo_estado').set({ fase: 'ESPERA', tiempo: 30 });
                     for(let i=30; i>0; i--) {
                         await db.ref('bingo_estado/tiempo').set(i);
                         await new Promise(r => setTimeout(r, 1000));
                     }
 
-                    // 3. INICIAR JUEGO NUEVO
+                    // 3. JUEGO ACTIVO
                     const keys = Object.keys(PATRONES);
                     const fig = keys[Math.floor(Math.random() * keys.length)];
                     await db.ref('bingo_estado').update({ fase: 'JUGANDO', patron: fig, historial: [], ultima: null, ganador: null });
-                    
                     bolsa = Array.from({length: 75}, (_, i) => i + 1);
                 }
 
-                // B. BUCLE DE SACAR BALOTAS
+                // BUCLE BALOTAS
                 while(bolsa.length > 0) {
                     let checkWin = await db.ref('bingo_estado/ganador').get();
                     if(checkWin.exists()) break; 
@@ -2620,19 +2635,14 @@
                     let hist = snapH.val() || [];
                     hist.push(n);
 
-                    await db.ref('bingo_estado').update({
-                        ultima: n,
-                        historial: hist
-                    });
-
-                    // TIEMPO ENTRE BALOTAS
+                    await db.ref('bingo_estado').update({ ultima: n, historial: hist });
                     await new Promise(r => setTimeout(r, 4000));
                     
                     checkWin = await db.ref('bingo_estado/ganador').get();
                     if(checkWin.exists()) break;
                 }
 
-                // C. FIN DEL JUEGO / REINICIO
+                // FIN
                 const finalCheck = await db.ref('bingo_estado/ganador').get();
                 if(finalCheck.exists()) {
                     await new Promise(r => setTimeout(r, 5000));
@@ -2649,7 +2659,6 @@
             if(!miCarton) return;
             const snapSt = await db.ref('bingo_estado').get();
             const st = snapSt.val();
-            
             if(st.fase !== 'JUGANDO' || st.ganador) return;
 
             const patronIndices = PATRONES[st.patron];
@@ -2665,10 +2674,9 @@
             if(esValido) {
                 const snapJugadores = await db.ref('bingo_jugadores').get();
                 const total = snapJugadores.numChildren() * COSTO;
-                const premioNeto = total * 0.80; // CAMBIO: AHORA ES EL 80%
+                const premioNeto = total * 0.80; 
 
                 await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + premioNeto);
-
                 await db.ref('bingo_estado').update({
                     fase: 'GANADOR',
                     ganadorNombre: usuario.email.split('@')[0],
@@ -2681,6 +2689,7 @@
             }
         }
 
+        // REEMBOLSO MANUAL
         async function salirYReembolsar() {
             if(!miCarton) return;
             await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
@@ -2691,16 +2700,13 @@
 
         function comprarCarton() {
             if(saldo < COSTO) return alert("Saldo insuficiente");
-            
             db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - COSTO });
             const c = cartones[Math.floor(Math.random() * cartones.length)];
             miCarton = c;
-            
             db.ref('bingo_jugadores/'+usuario.uid).set({
                 nombre: usuario.email.split('@')[0],
                 carton: c
             });
-
             dibujarMiCarton(c);
             document.getElementById('pantalla-pago').style.display = 'none';
             document.getElementById('interfaz-juego').style.display = 'block';
@@ -2717,31 +2723,57 @@
                 db.ref('bingo_jugadores').on('value', js => {
                     const n = js ? js.numChildren() : 0;
                     document.getElementById('contador-jugadores').innerText = "Jugadores en sala: " + n;
-                    
-                    // CALCULO DINÁMICO DEL PREMIO (80%)
                     const total = n * COSTO;
                     const premio = total * 0.80;
-                    
-                    // Actualizar en Pantalla Pago
                     document.getElementById('pozo-acumulado').innerText = "$" + premio.toLocaleString();
-                    
-                    // Actualizar en Dashboard (Juego)
                     document.getElementById('dash-premio').innerText = "$" + premio.toLocaleString();
+
+                    const lista = document.getElementById('lista-jugadores');
+                    lista.innerHTML = ""; 
+                    if(js) {
+                        js.forEach(childSnapshot => {
+                            const p = childSnapshot.val();
+                            const li = document.createElement('li');
+                            li.className = 'player-item';
+                            if(childSnapshot.key === usuario.uid) {
+                                li.classList.add('me');
+                                li.innerText = p.nombre;
+                            } else {
+                                li.innerText = p.nombre;
+                            }
+                            lista.appendChild(li);
+                        });
+                    }
                 });
 
                 if (st.fase === 'INSUFICIENTE') {
+                    // Si tengo cartón, mostrar overlay encima del juego
                     if (miCarton) {
                         document.getElementById('overlay-espera').style.display = 'flex';
-                        document.getElementById('msg-status').innerText = "Esperando jugadores...";
+                        // Actualizar cuenta regresiva de cierre
+                        if(st.cancelTimer) {
+                            document.getElementById('cancel-timer').innerText = st.cancelTimer;
+                        }
                     } else {
                         document.getElementById('msg-status').innerText = "Esperando más jugadores...";
+                    }
+                }
+                else if (st.fase === 'CANCELADO') {
+                    // Si la sala se canceló y yo tenía cartón, reembolsarme
+                    if(miCarton) {
+                        document.getElementById('overlay-espera').style.display = 'none';
+                        document.getElementById('overlay-cancelado').style.display = 'flex';
+                        // Auto reembolso local
+                        db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
+                        miCarton = null; // Quitar cartón para que no vuelva a cobrar
+                        // Borrarse de la lista
+                        db.ref('bingo_jugadores/'+usuario.uid).remove();
                     }
                 }
                 else if(st.fase === 'ESPERA') {
                     document.getElementById('overlay-espera').style.display = 'none';
                     resetMesa();
                     document.getElementById('msg-status').innerText = "⏳ Inicia en " + st.tiempo + "s";
-                    
                     if(miCarton) {
                         document.getElementById('pantalla-pago').style.display = 'none';
                         document.getElementById('interfaz-juego').style.display = 'block';
@@ -2807,7 +2839,7 @@
             });
         }
 
-        // --- AUXILIARES VISUALES ---
+        // --- AUXILIARES ---
         function initTableroMaestro() {
             const container = document.getElementById('grid-maestra');
             container.innerHTML = "";
