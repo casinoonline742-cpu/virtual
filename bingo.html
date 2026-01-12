@@ -37,9 +37,11 @@
         .num-mini { width: 25px; height: 25px; background: #222; color: #555; border: 1px solid #333; font-size: 10px; margin-right: 1px; display: flex; align-items: center; justify-content: center; border-radius: 2px; }
         .num-mini.salio { background: #FFD700; color: black; font-weight: bold; border-color: white; }
 
-        /* PANTALLA JUEGO */
-        #pantalla-juego { display: none; padding: 10px; animation: slideUp 0.5s; }
+        /* PANTALLA JUEGO (CORREGIDO AQUÍ) */
+        /* Antes estaba en display: none; lo cambiamos a display: block; */
+        #pantalla-juego { display: block; padding: 10px; animation: slideUp 0.5s; }
         @keyframes slideUp { from {transform: translateY(20px); opacity:0;} to {transform: translateY(0); opacity:1;} }
+        
         .carton-frame { background: #fff; padding: 5px; border-radius: 10px; border: 4px solid #0277bd; max-width: 360px; margin: 0 auto; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .carton-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: #0277bd; border: 2px solid #0277bd; }
         .header-cell { background: #0277bd; color: white; font-weight: 900; font-size: 1.4em; padding: 5px 0; }
@@ -59,17 +61,17 @@
         .player-item.me::after { content: "(Tú)"; margin-left: 5px; font-size: 0.8em; color: #00e676; }
 
         /* BOTONES */
-        .btn-bingo-float { position: fixed; bottom: 20px; right: 20px; background: radial-gradient(circle, #d50000, #b71c1c); border: 4px solid white; color: white; width: 80px; height: 80px; border-radius: 50%; font-weight: 900; font-size: 16px; box-shadow: 0 5px 20px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; animation: pulseBtn 1.5s infinite; display: none; }
-        .btn-bingo-float:active { transform: scale(0.9); }
-        @keyframes pulseBtn { 0% {transform:scale(1);} 50% {transform:scale(1.05);} 100% {transform:scale(1);} }
+        .btn-bingo-float { position: fixed; bottom: 20px; right: 20px; background: radial-gradient(circle, #d50000, #b71c1c); border: 4px solid white; color: white; width: 80px; height: 80px; border-radius: 50%; font-weight: 900; font-size: 16px; box-shadow: 0 5px 20px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; animation: pulseBtn 1.5s infinite;} 
         
         #pantalla-pago { padding: 40px 20px; display: block; }
         .btn-pay { background: #00e676; color: #000; padding: 15px 40px; border: none; border-radius: 30px; font-weight: bold; font-size: 1.2em; margin-top: 20px; cursor: pointer; }
         .btn-pay:disabled { filter: grayscale(1); opacity: 0.6; }
         
         .overlay-msg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .btn-secondary { background: transparent; border: 2px solid white; color: white; padding: 10px 20px; margin-top: 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+        
+        /* ESTILO PARA EL BOTÓN ROJO DE REEMBOLSO */
+        .btn-secondary { background: transparent; border: 2px solid #ff5252; color: white; padding: 10px 20px; margin-top: 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-secondary:hover { background: #ff5252; color: white; }
     </style>
 </head>
 <body>
@@ -91,7 +93,9 @@
         <br><br>
         <p>Valor Cartón: <b style="color:white;">$500</b></p>
         <button id="btn-comprar" class="btn-pay" onclick="comprarCarton()" disabled>Cargando...</button>
-        <h3 id="msg-status" style="margin-top:20px; color:gold; font-size: 1.5em;">Cargando...</h3>
+        
+        <h3 id="msg-status" style="margin-top:20px; color:gold; font-size: 1.5em; min-height: 1.5em;"></h3>
+        
         <p id="contador-jugadores" style="color:#aaa; font-size:0.9em;">Jugadores en sala: 0</p>
     </div>
 
@@ -155,7 +159,7 @@
             Si el tiempo termina, el dinero se reembolsa automáticamente.
         </p>
         
-        <button class="btn-secondary" onclick="salirYReembolsar()" style="padding: 10px 30px; background: #b71c1c; border: none;">
+        <button class="btn-secondary" onclick="salirYReembolsar()" style="background: #b71c1c; border: none;">
             SALIR Y REEMBOLSAR
         </button>
     </div>
@@ -2533,7 +2537,7 @@
                 const btn = document.getElementById('btn-comprar');
                 if(btn) {
                     btn.disabled = true;
-                    btn.innerText = "Cargando...";
+                    btn.innerText = "Conectando...";
                 }
 
                 db.ref('usuarios/'+u.uid).on('value', s => {
@@ -2541,15 +2545,12 @@
                     document.getElementById('miSaldo').innerText = "$ " + saldo.toLocaleString();
                 });
 
-                // Primero verificar DB
                 await verificarSiYaEstabaJugando();
                 
-                // Luego activar lógica
                 initTableroMaestro(); 
                 intentarSerMaestro(); 
                 escucharEstado();
 
-                // Detector de desconexión
                 db.ref('bingo_jugadores/' + u.uid).on('value', snapshot => {
                     if (miCarton && !snapshot.exists()) {
                         miCarton = null;
@@ -2612,6 +2613,12 @@
                     }
 
                     if (estado.fase === 'INSUFICIENTE') {
+                        if (!estado.cancelTimestamp) {
+                             await db.ref('bingo_estado').update({ 
+                                cancelTimestamp: Date.now() + (TIEMPO_CIERRE_SALA * 1000) 
+                             });
+                        }
+
                         const jugSnap = await db.ref('bingo_jugadores').get();
                         const num = jugSnap.exists() ? jugSnap.numChildren() : 0;
 
@@ -2621,7 +2628,7 @@
                                 startTimestamp: Date.now() + (TIEMPO_ESPERA_INICIO * 1000)
                             });
                         } else {
-                            if (Date.now() > estado.cancelTimestamp) {
+                            if (estado.cancelTimestamp && Date.now() > estado.cancelTimestamp) {
                                 await db.ref('bingo_estado').update({ fase: 'CANCELADO' });
                                 await new Promise(r => setTimeout(r, 5000));
                                 await db.ref('bingo_estado').remove(); 
@@ -2631,7 +2638,15 @@
                         await new Promise(r => setTimeout(r, 1000));
                     }
 
-                    else if (estado.fase === 'ESPERA') {
+                   else if (estado.fase === 'ESPERA') {
+                        // --- CORRECCIÓN: AUTO-REPARAR SI FALTA EL TIEMPO ---
+                        if (!estado.startTimestamp) {
+                            console.log("Error: Estado ESPERA sin tiempo. Reiniciando a INSUFICIENTE.");
+                            await db.ref('bingo_estado').update({ fase: 'INSUFICIENTE' });
+                            continue;
+                        }
+                        // ---------------------------------------------------
+
                         if (Date.now() > estado.startTimestamp) {
                             const keys = Object.keys(PATRONES);
                             const fig = keys[Math.floor(Math.random() * keys.length)];
@@ -2646,7 +2661,6 @@
                         }
                         await new Promise(r => setTimeout(r, 500));
                     }
-
                     else if (estado.fase === 'JUGANDO') {
                         if (estado.ganador) {
                             await new Promise(r => setTimeout(r, 8000));
@@ -2690,13 +2704,26 @@
             }
         }
 
-        // 6. LÓGICA DE INTERFAZ (CLIENTES) - CORREGIDA
+        // 6. LÓGICA DE INTERFAZ (CLIENTES)
         function escucharEstado() {
             db.ref('bingo_estado').on('value', snap => {
                 const st = snap.val();
                 
+                // === REINICIO AUTOMÁTICO DE INTERFAZ ===
                 if(!st) {
                     if (intervaloTimer) clearInterval(intervaloTimer);
+                    document.getElementById('msg-status').innerText = "Esperando jugadores...";
+                    document.getElementById('msg-status').style.color = "gold";
+                    document.getElementById('overlay-cancelado').style.display = 'none';
+                    document.getElementById('overlay-espera').style.display = 'none';
+                    document.getElementById('pantalla-pago').style.display = 'block';
+                    document.getElementById('interfaz-juego').style.display = 'none';
+                    
+                    if (!miCarton) {
+                        const btn = document.getElementById('btn-comprar');
+                        btn.disabled = false;
+                        btn.innerText = "JUGAR AHORA";
+                    }
                     return;
                 }
 
@@ -2729,33 +2756,25 @@
 
                     const actualizarConteo = () => {
                         const ahora = Date.now();
-                        // CORRECCIÓN MATEMÁTICA: Usamos el timestamp fijo del servidor
-                        let fin = st.cancelTimestamp;
-                        if (!fin) return; // Si no hay fecha, no calculamos
-
+                        const fin = st.cancelTimestamp || (ahora + 60000); 
                         const restantes = Math.max(0, Math.ceil((fin - ahora) / 1000));
                         
-                        // 1. Actualiza el Overlay Negro
                         const elTimer = document.getElementById('cancel-timer');
                         if(elTimer) elTimer.innerText = restantes;
 
-                        // 2. Actualiza el Texto Amarillo en Pantalla de Pago
                         const elStatusPago = document.getElementById('msg-status');
                         if(elStatusPago) {
                              if (restantes > 0) {
-                                 elStatusPago.innerHTML = `Esperando... Cierre en <span style="color:white">${restantes}s</span>`;
+                                 elStatusPago.innerHTML = `Esperando... Cierre en <span style="color:#ff5252">${restantes}s</span>`;
                              } else {
                                  elStatusPago.innerText = "Cancelando sala...";
                              }
                         }
-
-                        if (restantes <= 0) clearInterval(intervaloTimer);
                     };
 
                     actualizarConteo();
                     intervaloTimer = setInterval(actualizarConteo, 1000);
 
-                    // PANTALLAS
                     if (miCarton) {
                         document.getElementById('pantalla-pago').style.display = 'none';
                         document.getElementById('interfaz-juego').style.display = 'block';
@@ -2781,7 +2800,7 @@
                     
                     intervaloTimer = setInterval(() => {
                         const segs = Math.max(0, Math.ceil((st.startTimestamp - Date.now()) / 1000));
-                        document.getElementById('msg-status').innerText = "⏳ Inicia en " + segs + "s";
+                        document.getElementById('msg-status').innerHTML = `<span style="color:gold">⏳ Inicia en ${segs}s</span>`;
                         if(miCarton) {
                             document.getElementById('lbl-letra').innerText = "TIEMPO";
                             document.getElementById('lbl-numero').innerText = segs;
@@ -2832,8 +2851,9 @@
                         db.ref('bingo_jugadores/'+usuario.uid).remove();
                         miCarton = null;
                     } else {
-                         document.getElementById('msg-status').innerText = "Sala cancelada. Reiniciando...";
-                         setTimeout(() => location.reload(), 3000);
+                         document.getElementById('msg-status').innerHTML = "<span style='color:red'>⛔ Sala cancelada</span>";
+                         document.getElementById('btn-comprar').disabled = true;
+                         document.getElementById('btn-comprar').innerText = "CERRADO";
                     }
                 }
             });
@@ -2878,8 +2898,9 @@
             if(saldo < COSTO) return alert("Saldo insuficiente");
             if(cartones.length === 0) return alert("Error: No hay cartones cargados.");
 
-            document.getElementById('btn-comprar').disabled = true;
-            document.getElementById('btn-comprar').innerText = "ESPERANDO...";
+            const btn = document.getElementById('btn-comprar');
+            btn.disabled = true;
+            btn.innerText = "ESPERANDO...";
 
             db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - COSTO });
             const c = cartones[Math.floor(Math.random() * cartones.length)];
