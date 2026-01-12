@@ -180,7 +180,7 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
-        // 2. DATOS DE CARTONES (Resumido)
+        // 2. DATOS DE CARTONES (PEGA AQUÍ LOS TUS CARTONES)
         const cartones = [
   { "id": "1090445448", "carton": 1, "numeros": [11,9,6,13,8,20,29,19,30,17,40,43,0,33,38,50,59,47,48,49,75,64,69,66,62] },
   { "id": "1090457831", "carton": 2, "numeros": [5,12,10,3,4,24,22,18,28,23,39,42,0,41,35,52,58,56,57,53,72,71,63,70,73] },
@@ -2509,7 +2509,7 @@
         let miCarton = null;
         let numerosCantadosGlobal = [];
         const COSTO = 500;
-        const TIEMPO_CIERRE_SALA = 60; // 60 segundos para cancelar si no hay gente
+        const TIEMPO_CIERRE_SALA = 60; 
 
         // 4. INICIO Y AUTENTICACIÓN
         auth.onAuthStateChanged(u => {
@@ -2525,12 +2525,29 @@
                 escucharEstado();
                 verificarSiYaEstabaJugando();
 
+                // *** CORRECCION 3: DETECTOR DE REINICIO DE SALA ***
+                // Si el servidor borra los jugadores, volvemos al inicio
+                db.ref('bingo_jugadores/' + u.uid).on('value', snapshot => {
+                    // Si tengo cartón (estaba jugando) PERO ya no existo en la DB...
+                    if (miCarton && !snapshot.exists()) {
+                        console.log("Juego terminado o reiniciado. Volviendo a lobby...");
+                        miCarton = null;
+                        document.getElementById('interfaz-juego').style.display = 'none';
+                        document.getElementById('pantalla-pago').style.display = 'block';
+                        document.getElementById('overlay-ganador').style.display = 'none';
+                        document.getElementById('btn-gritar').style.display = 'none';
+                        resetMesa();
+                        // Opcional: mostrar alerta
+                        // alert("El juego ha terminado.");
+                    }
+                });
+
             } else {
                 location.href = "index.html";
             }
         });
 
-        // 5. RESTAURAR SESIÓN (CORREGIDO PARA MOSTRAR ESPERA)
+        // 5. RESTAURAR SESIÓN
         async function verificarSiYaEstabaJugando() {
             const snap = await db.ref('bingo_jugadores/' + usuario.uid).get();
             if (snap.exists()) {
@@ -2538,13 +2555,11 @@
                 miCarton = data.carton;
                 dibujarMiCarton(miCarton);
                 
-                // Si tengo cartón, SIEMPRE muestro la interfaz de juego
                 document.getElementById('pantalla-pago').style.display = 'none';
                 document.getElementById('interfaz-juego').style.display = 'block';
                 document.getElementById('pantalla-juego').style.display = 'block';
                 document.getElementById('btn-gritar').style.display = 'flex';
                 
-                // Pero si el estado es INSUFICIENTE, muestro el overlay encima
                 const estadoSnap = await db.ref('bingo_estado').get();
                 if(estadoSnap.exists() && estadoSnap.val().fase === 'INSUFICIENTE') {
                      document.getElementById('overlay-espera').style.display = 'flex';
@@ -2576,54 +2591,48 @@
                     bolsa = Array.from({length: 75}, (_, i) => i + 1).filter(n => !salieron.includes(n));
                 } 
                 else {
-                    // INICIO NUEVO JUEGO
-                    // 1. FASE ESPERA JUGADORES CON TIMEOUT
+                    // --- FASE 1: ESPERA DE JUGADORES ---
                     let jugadoresSnap = await db.ref('bingo_jugadores').once('value');
                     let numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
                     let tiempoEspera = 0;
 
-                    // Esperamos mientras haya menos de 2 jugadores
                     while (numJugadores < 2) {
-                        // Actualizamos el estado con el tiempo restante para cancelar
                         let tiempoRestante = TIEMPO_CIERRE_SALA - tiempoEspera;
-                        
                         await db.ref('bingo_estado').update({ 
                             fase: 'INSUFICIENTE', 
                             tiempo: 0,
                             cancelTimer: tiempoRestante 
                         });
 
-                        // Si se acabó el tiempo, CANCELAMOS LA PARTIDA
                         if(tiempoRestante <= 0) {
                             await db.ref('bingo_estado').update({ fase: 'CANCELADO' });
-                            await new Promise(r => setTimeout(r, 5000)); // Esperar a que los clientes se reembolsen
-                            await db.ref('bingo_estado').remove(); // Limpiar todo
-                            tiempoEspera = 0; // Reiniciar loop local
-                            continue; // Volver al inicio del while(true)
+                            await new Promise(r => setTimeout(r, 5000));
+                            await db.ref('bingo_estado').remove(); 
+                            tiempoEspera = 0; 
+                            continue; 
                         }
 
                         await new Promise(r => setTimeout(r, 1000));
                         tiempoEspera++;
-                        
                         jugadoresSnap = await db.ref('bingo_jugadores').once('value');
                         numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
                     }
 
-                    // 2. CUENTA REGRESIVA DE INICIO
-                    await db.ref('bingo_estado').set({ fase: 'ESPERA', tiempo: 30 });
-                    for(let i=30; i>0; i--) {
+                    // --- FASE 2: CUENTA REGRESIVA ---
+                    await db.ref('bingo_estado').set({ fase: 'ESPERA', tiempo: 15 });
+                    for(let i=15; i>0; i--) {
                         await db.ref('bingo_estado/tiempo').set(i);
                         await new Promise(r => setTimeout(r, 1000));
                     }
 
-                    // 3. JUEGO ACTIVO
+                    // --- FASE 3: JUEGO ACTIVO ---
                     const keys = Object.keys(PATRONES);
                     const fig = keys[Math.floor(Math.random() * keys.length)];
                     await db.ref('bingo_estado').update({ fase: 'JUGANDO', patron: fig, historial: [], ultima: null, ganador: null });
                     bolsa = Array.from({length: 75}, (_, i) => i + 1);
                 }
 
-                // BUCLE BALOTAS
+                // --- FASE 4: DICTAR BALOTAS ---
                 while(bolsa.length > 0) {
                     let checkWin = await db.ref('bingo_estado/ganador').get();
                     if(checkWin.exists()) break; 
@@ -2636,39 +2645,49 @@
                     hist.push(n);
 
                     await db.ref('bingo_estado').update({ ultima: n, historial: hist });
-                    await new Promise(r => setTimeout(r, 4000));
+                    
+                    // *** CORRECCIÓN 1: TIEMPO AUMENTADO A 7 SEGUNDOS ***
+                    await new Promise(r => setTimeout(r, 7000)); 
                     
                     checkWin = await db.ref('bingo_estado/ganador').get();
                     if(checkWin.exists()) break;
                 }
 
-                // FIN
+                // --- FINAL DEL JUEGO / LIMPIEZA ---
+                // Si alguien ganó, esperar unos segundos.
                 const finalCheck = await db.ref('bingo_estado/ganador').get();
                 if(finalCheck.exists()) {
-                    await new Promise(r => setTimeout(r, 5000));
-                    await db.ref('bingo_estado').remove(); 
-                    await db.ref('bingo_jugadores').remove(); 
-                } else {
-                    await db.ref('bingo_estado').set({ fase: 'INSUFICIENTE', tiempo: 0 });
+                    await new Promise(r => setTimeout(r, 8000)); 
                 }
+                
+                // *** CORRECCIÓN 3: SIEMPRE BORRAR JUGADORES AL FINAL ***
+                // Esto disparará el evento en el cliente para volver al inicio
+                await db.ref('bingo_estado').remove(); 
+                await db.ref('bingo_jugadores').remove(); 
             }
         }
 
         // 7. FUNCIONES DE JUGADOR
         async function intentarCantarBingo() {
             if(!miCarton) return;
+            
+            // *** CORRECCIÓN 2: VALIDACIÓN SEGURA CONTRA SERVIDOR ***
+            // 1. Traer estado actual desde la DB
             const snapSt = await db.ref('bingo_estado').get();
             const st = snapSt.val();
-            if(st.fase !== 'JUGANDO' || st.ganador) return;
+            
+            if(!st || st.fase !== 'JUGANDO' || st.ganador) return;
 
+            // 2. Usar la lista oficial de balotas que han salido
+            const balotasSalidas = st.historial || [];
             const patronIndices = PATRONES[st.patron];
             const misNumeros = miCarton.numeros; 
-            const cantados = numerosCantadosGlobal;
 
+            // 3. Validar: ¿Todos los números de mi figura están en la lista oficial?
             const esValido = patronIndices.every(idx => {
-                const n = misNumeros[idx];
-                if(n === 0) return true;
-                return cantados.includes(n);
+                const miNumero = misNumeros[idx];
+                if(miNumero === 0) return true; // El centro es comodín
+                return balotasSalidas.includes(miNumero);
             });
 
             if(esValido) {
@@ -2676,7 +2695,10 @@
                 const total = snapJugadores.numChildren() * COSTO;
                 const premioNeto = total * 0.80; 
 
+                // Sumar saldo al ganador
                 await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + premioNeto);
+                
+                // Anunciar ganador (esto detendrá el ciclo del servidor)
                 await db.ref('bingo_estado').update({
                     fase: 'GANADOR',
                     ganadorNombre: usuario.email.split('@')[0],
@@ -2685,11 +2707,10 @@
                 });
             } else {
                 if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                alert("❌ BINGO INCORRECTO");
+                alert("❌ BINGO INCORRECTO: Faltan números por salir según la figura oficial.");
             }
         }
 
-        // REEMBOLSO MANUAL
         async function salirYReembolsar() {
             if(!miCarton) return;
             await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
@@ -2700,6 +2721,9 @@
 
         function comprarCarton() {
             if(saldo < COSTO) return alert("Saldo insuficiente");
+            // Si el arreglo cartones está vacío, fallará. Asegúrate de llenarlo.
+            if(cartones.length === 0) return alert("Error: No hay cartones cargados en el código.");
+
             db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - COSTO });
             const c = cartones[Math.floor(Math.random() * cartones.length)];
             miCarton = c;
@@ -2747,10 +2771,8 @@
                 });
 
                 if (st.fase === 'INSUFICIENTE') {
-                    // Si tengo cartón, mostrar overlay encima del juego
                     if (miCarton) {
                         document.getElementById('overlay-espera').style.display = 'flex';
-                        // Actualizar cuenta regresiva de cierre
                         if(st.cancelTimer) {
                             document.getElementById('cancel-timer').innerText = st.cancelTimer;
                         }
@@ -2759,14 +2781,12 @@
                     }
                 }
                 else if (st.fase === 'CANCELADO') {
-                    // Si la sala se canceló y yo tenía cartón, reembolsarme
                     if(miCarton) {
                         document.getElementById('overlay-espera').style.display = 'none';
                         document.getElementById('overlay-cancelado').style.display = 'flex';
-                        // Auto reembolso local
+                        // Auto reembolso local rápido
                         db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
-                        miCarton = null; // Quitar cartón para que no vuelva a cobrar
-                        // Borrarse de la lista
+                        miCarton = null; 
                         db.ref('bingo_jugadores/'+usuario.uid).remove();
                     }
                 }
@@ -2807,7 +2827,7 @@
                     document.getElementById('overlay-ganador').style.display = 'flex';
                     document.getElementById('win-nombre').innerText = st.ganadorNombre;
                     document.getElementById('win-premio').innerText = "$" + st.ganadorPremio.toLocaleString();
-                    miCarton = null; 
+                    // miCarton = null; // No lo borramos aquí, esperamos a que el servidor limpie la sala
                 }
             });
 
