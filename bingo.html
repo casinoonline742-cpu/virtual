@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bingo Casino - Automático</title>
+    <title>Bingo Casino - Estricto 7s</title>
     <style>
         /* --- ESTILOS GENERALES --- */
         body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #05131a; color: white; text-align: center; margin: 0; padding: 0; padding-bottom: 120px; user-select: none; }
@@ -2508,8 +2508,10 @@
         let saldo = 0;
         let miCarton = null;
         let numerosCantadosGlobal = [];
+        let soyElMaestroLocal = false; // Evita doble ejecución en la misma pestaña
         const COSTO = 500;
         const TIEMPO_CIERRE_SALA = 60; 
+        const TIEMPO_ENTRE_BALOTAS = 7000; // 7000 ms estricto
 
         // 4. INICIO Y AUTENTICACIÓN
         auth.onAuthStateChanged(u => {
@@ -2525,20 +2527,16 @@
                 escucharEstado();
                 verificarSiYaEstabaJugando();
 
-                // *** CORRECCION 3: DETECTOR DE REINICIO DE SALA ***
-                // Si el servidor borra los jugadores, volvemos al inicio
+                // DETECTOR DE REINICIO: Si me borran, volver al lobby
                 db.ref('bingo_jugadores/' + u.uid).on('value', snapshot => {
-                    // Si tengo cartón (estaba jugando) PERO ya no existo en la DB...
                     if (miCarton && !snapshot.exists()) {
-                        console.log("Juego terminado o reiniciado. Volviendo a lobby...");
+                        console.log("Juego terminado. Volviendo a lobby...");
                         miCarton = null;
                         document.getElementById('interfaz-juego').style.display = 'none';
                         document.getElementById('pantalla-pago').style.display = 'block';
                         document.getElementById('overlay-ganador').style.display = 'none';
                         document.getElementById('btn-gritar').style.display = 'none';
                         resetMesa();
-                        // Opcional: mostrar alerta
-                        // alert("El juego ha terminado.");
                     }
                 });
 
@@ -2573,8 +2571,11 @@
             ref.onDisconnect().remove();
             ref.transaction(curr => { return curr === null ? usuario.uid : curr; }, (err, comm, snap) => {
                 if(comm && snap.val() === usuario.uid) {
-                    console.log("--- MODULO MAESTRO ACTIVO ---");
-                    cicloDeJuego();
+                    if(!soyElMaestroLocal) {
+                        soyElMaestroLocal = true;
+                        console.log("--- ERES EL MAESTRO DE LA SALA ---");
+                        cicloDeJuego();
+                    }
                 }
             });
         }
@@ -2625,18 +2626,40 @@
                         await new Promise(r => setTimeout(r, 1000));
                     }
 
-                    // --- FASE 3: JUEGO ACTIVO ---
+                    // --- FASE 3: INICIO ---
                     const keys = Object.keys(PATRONES);
                     const fig = keys[Math.floor(Math.random() * keys.length)];
-                    await db.ref('bingo_estado').update({ fase: 'JUGANDO', patron: fig, historial: [], ultima: null, ganador: null });
+                    await db.ref('bingo_estado').update({ 
+                        fase: 'JUGANDO', 
+                        patron: fig, 
+                        historial: [], 
+                        ultima: null, 
+                        ganador: null,
+                        timestamp: 0 // Reset timestamp
+                    });
                     bolsa = Array.from({length: 75}, (_, i) => i + 1);
                 }
 
-                // --- FASE 4: DICTAR BALOTAS ---
+                // --- FASE 4: BUCLE ESTRICTO DE BALOTAS ---
                 while(bolsa.length > 0) {
                     let checkWin = await db.ref('bingo_estado/ganador').get();
                     if(checkWin.exists()) break; 
 
+                    // 1. REVISAR TIMESTAMP EN DB PARA EVITAR ACELERACIÓN
+                    // Esto evita que si tienes 2 pestañas abiertas, el juego vaya el doble de rápido.
+                    let checkTimeSnap = await db.ref('bingo_estado/timestamp').get();
+                    let lastTime = checkTimeSnap.val() || 0;
+                    let now = Date.now();
+                    let diff = now - lastTime;
+
+                    if (diff < TIEMPO_ENTRE_BALOTAS) {
+                        // Si intentamos sacar balota antes de tiempo, esperamos lo que falta
+                        let waitTime = TIEMPO_ENTRE_BALOTAS - diff;
+                        console.log(`Protección de tiempo: Esperando ${waitTime}ms...`);
+                        await new Promise(r => setTimeout(r, waitTime));
+                    }
+
+                    // 2. SACAR BALOTA
                     const idx = Math.floor(Math.random() * bolsa.length);
                     const n = bolsa.splice(idx, 1)[0];
                     
@@ -2644,49 +2667,50 @@
                     let hist = snapH.val() || [];
                     hist.push(n);
 
-                    await db.ref('bingo_estado').update({ ultima: n, historial: hist });
+                    // 3. GUARDAR CON TIMESTAMP ACTUAL
+                    await db.ref('bingo_estado').update({ 
+                        ultima: n, 
+                        historial: hist,
+                        timestamp: firebase.database.ServerValue.TIMESTAMP 
+                    });
                     
-                    // *** CORRECCIÓN 1: TIEMPO AUMENTADO A 7 SEGUNDOS ***
-                    await new Promise(r => setTimeout(r, 7000)); 
+                    // 4. ESPERA LOCAL (Para no saturar la CPU)
+                    await new Promise(r => setTimeout(r, TIEMPO_ENTRE_BALOTAS)); 
                     
                     checkWin = await db.ref('bingo_estado/ganador').get();
                     if(checkWin.exists()) break;
                 }
 
-                // --- FINAL DEL JUEGO / LIMPIEZA ---
-                // Si alguien ganó, esperar unos segundos.
+                // --- FINAL ---
                 const finalCheck = await db.ref('bingo_estado/ganador').get();
                 if(finalCheck.exists()) {
                     await new Promise(r => setTimeout(r, 8000)); 
                 }
                 
-                // *** CORRECCIÓN 3: SIEMPRE BORRAR JUGADORES AL FINAL ***
-                // Esto disparará el evento en el cliente para volver al inicio
+                // Reiniciar sala completamente
                 await db.ref('bingo_estado').remove(); 
                 await db.ref('bingo_jugadores').remove(); 
             }
         }
 
-        // 7. FUNCIONES DE JUGADOR
+        // 7. FUNCIONES DE JUGADOR (Validación Segura)
         async function intentarCantarBingo() {
             if(!miCarton) return;
             
-            // *** CORRECCIÓN 2: VALIDACIÓN SEGURA CONTRA SERVIDOR ***
-            // 1. Traer estado actual desde la DB
+            // 1. Descargar datos frescos del servidor
             const snapSt = await db.ref('bingo_estado').get();
             const st = snapSt.val();
             
             if(!st || st.fase !== 'JUGANDO' || st.ganador) return;
 
-            // 2. Usar la lista oficial de balotas que han salido
+            // 2. Validar contra el historial OFICIAL del servidor
             const balotasSalidas = st.historial || [];
             const patronIndices = PATRONES[st.patron];
             const misNumeros = miCarton.numeros; 
 
-            // 3. Validar: ¿Todos los números de mi figura están en la lista oficial?
             const esValido = patronIndices.every(idx => {
                 const miNumero = misNumeros[idx];
-                if(miNumero === 0) return true; // El centro es comodín
+                if(miNumero === 0) return true; 
                 return balotasSalidas.includes(miNumero);
             });
 
@@ -2695,10 +2719,8 @@
                 const total = snapJugadores.numChildren() * COSTO;
                 const premioNeto = total * 0.80; 
 
-                // Sumar saldo al ganador
                 await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + premioNeto);
                 
-                // Anunciar ganador (esto detendrá el ciclo del servidor)
                 await db.ref('bingo_estado').update({
                     fase: 'GANADOR',
                     ganadorNombre: usuario.email.split('@')[0],
@@ -2707,7 +2729,7 @@
                 });
             } else {
                 if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                alert("❌ BINGO INCORRECTO: Faltan números por salir según la figura oficial.");
+                alert("❌ BINGO INCORRECTO: Faltan números según el servidor.");
             }
         }
 
@@ -2721,8 +2743,7 @@
 
         function comprarCarton() {
             if(saldo < COSTO) return alert("Saldo insuficiente");
-            // Si el arreglo cartones está vacío, fallará. Asegúrate de llenarlo.
-            if(cartones.length === 0) return alert("Error: No hay cartones cargados en el código.");
+            if(cartones.length === 0) return alert("Error: No hay cartones cargados.");
 
             db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - COSTO });
             const c = cartones[Math.floor(Math.random() * cartones.length)];
@@ -2784,7 +2805,6 @@
                     if(miCarton) {
                         document.getElementById('overlay-espera').style.display = 'none';
                         document.getElementById('overlay-cancelado').style.display = 'flex';
-                        // Auto reembolso local rápido
                         db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
                         miCarton = null; 
                         db.ref('bingo_jugadores/'+usuario.uid).remove();
@@ -2827,7 +2847,6 @@
                     document.getElementById('overlay-ganador').style.display = 'flex';
                     document.getElementById('win-nombre').innerText = st.ganadorNombre;
                     document.getElementById('win-premio').innerText = "$" + st.ganadorPremio.toLocaleString();
-                    // miCarton = null; // No lo borramos aquí, esperamos a que el servidor limpie la sala
                 }
             });
 
