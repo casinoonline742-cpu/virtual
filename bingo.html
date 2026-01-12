@@ -2604,6 +2604,7 @@
                     const snap = await db.ref('bingo_estado').get();
                     let estado = snap.val();
 
+                    // 1. Si no hay estado, crearlo
                     if (!estado) {
                         await db.ref('bingo_estado').set({ 
                             fase: 'INSUFICIENTE', 
@@ -2612,11 +2613,10 @@
                         continue;
                     }
 
+                    // 2. FASE: INSUFICIENTE (Esperando jugadores)
                     if (estado.fase === 'INSUFICIENTE') {
-                        if (!estado.cancelTimestamp) {
-                             await db.ref('bingo_estado').update({ 
-                                cancelTimestamp: Date.now() + (TIEMPO_CIERRE_SALA * 1000) 
-                             });
+                        if (!estado.cancelTimestamp) { 
+                            await db.ref('bingo_estado').update({ cancelTimestamp: Date.now() + (TIEMPO_CIERRE_SALA * 1000) }); 
                         }
 
                         const jugSnap = await db.ref('bingo_jugadores').get();
@@ -2630,22 +2630,19 @@
                         } else {
                             if (estado.cancelTimestamp && Date.now() > estado.cancelTimestamp) {
                                 await db.ref('bingo_estado').update({ fase: 'CANCELADO' });
-                                await new Promise(r => setTimeout(r, 5000));
-                                await db.ref('bingo_estado').remove(); 
-                                await db.ref('bingo_jugadores').remove(); 
                             }
                         }
                         await new Promise(r => setTimeout(r, 1000));
                     }
 
-                   else if (estado.fase === 'ESPERA') {
-                        // --- CORRECCIÓN: AUTO-REPARAR SI FALTA EL TIEMPO ---
+                    // 3. FASE: ESPERA (Cuenta regresiva)
+                    else if (estado.fase === 'ESPERA') {
+                        // FIX: Auto-reparar si falta el tiempo (NaN)
                         if (!estado.startTimestamp) {
-                            console.log("Error: Estado ESPERA sin tiempo. Reiniciando a INSUFICIENTE.");
+                            console.log("Error de tiempo detectado. Reiniciando...");
                             await db.ref('bingo_estado').update({ fase: 'INSUFICIENTE' });
                             continue;
                         }
-                        // ---------------------------------------------------
 
                         if (Date.now() > estado.startTimestamp) {
                             const keys = Object.keys(PATRONES);
@@ -2661,14 +2658,11 @@
                         }
                         await new Promise(r => setTimeout(r, 500));
                     }
-                    else if (estado.fase === 'JUGANDO') {
-                        if (estado.ganador) {
-                            await new Promise(r => setTimeout(r, 8000));
-                            await db.ref('bingo_estado').remove();
-                            await db.ref('bingo_jugadores').remove();
-                            continue;
-                        }
 
+                    // 4. FASE: JUGANDO (Sacar balotas)
+                    else if (estado.fase === 'JUGANDO') {
+                        // (Aquí quitamos la lógica de ganador porque la fase cambia)
+                        
                         if (!estado.nextBallTimestamp || Date.now() >= estado.nextBallTimestamp) {
                             const historial = estado.historial || [];
                             const bolsa = Array.from({length: 75}, (_, i) => i + 1).filter(n => !historial.includes(n));
@@ -2690,7 +2684,16 @@
                         }
                         await new Promise(r => setTimeout(r, 500));
                     }
+
+                    // 5. FASE: GANADOR (¡ESTA ES LA PARTE IMPORTANTE QUE TE FALTABA!)
+                    else if (estado.fase === 'GANADOR') {
+                        console.log("¡Hay ganador! Esperando 8 segundos para reiniciar...");
+                        await new Promise(r => setTimeout(r, 8000)); // Espera 8 segundos
+                        await db.ref('bingo_estado').remove();       // Borra el juego viejo
+                        await db.ref('bingo_jugadores').remove();    // Saca a los jugadores
+                    }
                     
+                    // 6. FASE: CANCELADO
                     else if (estado.fase === 'CANCELADO') {
                          await new Promise(r => setTimeout(r, 5000));
                          await db.ref('bingo_estado').remove();
@@ -2703,29 +2706,33 @@
                 }
             }
         }
-
         // 6. LÓGICA DE INTERFAZ (CLIENTES)
         function escucharEstado() {
             db.ref('bingo_estado').on('value', snap => {
                 const st = snap.val();
                 
                 // === REINICIO AUTOMÁTICO DE INTERFAZ ===
-                if(!st) {
-                    if (intervaloTimer) clearInterval(intervaloTimer);
-                    document.getElementById('msg-status').innerText = "Esperando jugadores...";
-                    document.getElementById('msg-status').style.color = "gold";
-                    document.getElementById('overlay-cancelado').style.display = 'none';
-                    document.getElementById('overlay-espera').style.display = 'none';
-                    document.getElementById('pantalla-pago').style.display = 'block';
-                    document.getElementById('interfaz-juego').style.display = 'none';
-                    
-                    if (!miCarton) {
-                        const btn = document.getElementById('btn-comprar');
-                        btn.disabled = false;
-                        btn.innerText = "JUGAR AHORA";
-                    }
-                    return;
+            if(!st) {
+                if (intervaloTimer) clearInterval(intervaloTimer);
+                
+                // Limpieza visual forzada
+                document.getElementById('overlay-ganador').style.display = 'none'; // <--- LA SOLUCIÓN PRINCIPAL
+                document.getElementById('overlay-cancelado').style.display = 'none';
+                document.getElementById('overlay-espera').style.display = 'none';
+                document.getElementById('interfaz-juego').style.display = 'none';
+                document.getElementById('pantalla-pago').style.display = 'block';
+
+                document.getElementById('msg-status').innerText = "Esperando jugadores...";
+                document.getElementById('msg-status').style.color = "gold";
+                
+                // Reactivar botón si no tengo cartón
+                if (!miCarton) {
+                    const btn = document.getElementById('btn-comprar');
+                    btn.disabled = false;
+                    btn.innerText = "JUGAR AHORA";
                 }
+                return;
+            }
 
                 // A. JUGADORES EN SALA
                 db.ref('bingo_jugadores').on('value', js => {
