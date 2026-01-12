@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Casino Virtual - Android Style</title>
+    <title>Casino Virtual</title>
     <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkNhc2lubyBWaXJ0dWFsIiwKICAic2hvcnRfbmFtZSI6ICJDYXNpbm8iLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAiYnJvd3NlciIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzEyMTIxMiIsCiAgInRoZW1lX2NvbG9yIjogIiNGRkQ3MDAiCn0=">
     <style>
         :root {
             --android-bg: #121212;
             --surface: #1e1e1e;
-            --primary-neon: #03dac6;
-            --text-sec: #b0b0b0;
             --gold: #FFD700;
         }
 
@@ -32,7 +30,7 @@
         .activa { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- LOGIN STYLE --- */
+        /* --- LOGIN --- */
         .login-header { text-align: center; margin-bottom: 30px; }
         input { 
             width: 100%; padding: 14px; margin: 8px 0; border-radius: 8px; 
@@ -43,31 +41,27 @@
             font-weight: bold; cursor: pointer; background: var(--gold); color: black; 
         }
 
-        /* --- LOBBY: TARJETA DE SALDO (Olla de Oro) --- */
+        /* --- LOBBY --- */
         .user-card {
             background: linear-gradient(135deg, #11998e, #38ef7d);
             border-radius: 16px; padding: 20px; margin-bottom: 16px;
             position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.4);
         }
         .user-email { font-size: 13px; opacity: 0.9; margin-bottom: 10px; display: block; }
-        .balance-label { font-size: 11px; font-weight: bold; letter-spacing: 1px; }
         .balance-amount { font-size: 32px; font-weight: bold; display: block; margin-top: 5px; }
         .pot-icon { position: absolute; right: 20px; bottom: 15px; font-size: 40px; opacity: 0.8; }
 
-        /* --- BANNERS ACCION (Recarga y Retiro) --- */
+        /* --- BANNERS --- */
         .banner-recarga {
             background: #2c2c2c; color: var(--gold); padding: 12px; border-radius: 8px;
             margin-bottom: 10px; text-align: center; font-size: 13px; cursor: pointer;
             border: 1px solid #444; animation: pulse 2s infinite;
         }
-        .banner-retiro { border-color: var(--primary-neon); color: var(--primary-neon); }
-        .banner-notif { border-color: #ff4081; color: #ff4081; display: none; }
-
+        .banner-retiro { border-color: #03dac6; color: #03dac6; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* --- GRID DE JUEGOS --- */
+        /* --- MENU JUEGOS --- */
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;}
-        
         .game-item {
             background-color: var(--surface); aspect-ratio: 1 / 1; border-radius: 12px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -77,14 +71,29 @@
         .game-item:active { transform: scale(0.95); background: #252525; }
         .game-item span.emoji { font-size: 40px; margin-bottom: 10px; }
         .game-item svg { width: 50px; height: 50px; margin-bottom: 10px; fill: var(--gold); }
-        .game-item b { font-size: 12px; letter-spacing: 1px; text-align: center; }
-        .game-full { grid-column: span 2; aspect-ratio: auto; padding: 20px; background: linear-gradient(45deg, #1e1e1e, #2a2a2a); border: 1px solid var(--gold); }
+        .game-item b { font-size: 12px; letter-spacing: 1px; }
 
-        /* --- ADMIN & OTROS --- */
+        /* --- PANEL ADMIN --- */
         .admin-tag { background: black; color: var(--gold); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; position: absolute; top: 20px; right: 20px; }
         .btn-danger { background: transparent; color: #ff5252; border: 1px solid #ff5252; width: 100%; padding: 12px; border-radius: 8px; margin-top: 20px; cursor: pointer; }
+        
         #panel-admin { background: #1a1a1a; padding: 15px; border-radius: 12px; margin-top: 25px; border: 1px dashed #444; }
-        .error { color: #ff5252; font-size: 12px; text-align: center; margin-top: 10px; }
+        
+        /* LISTA DE USUARIOS */
+        .user-list-container {
+            max-height: 250px; overflow-y: auto; 
+            background: #111; border: 1px solid #333; border-radius: 8px; margin-top: 10px;
+        }
+        .user-row {
+            padding: 12px; border-bottom: 1px solid #222; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        }
+        .user-row:hover { background: #222; }
+        .user-row.selected { background: rgba(0, 230, 118, 0.15); border-left: 4px solid #00e676; }
+        
+        .selected-box {
+            background: #222; border: 1px solid var(--gold); 
+            padding: 15px; margin: 15px 0; border-radius: 8px; text-align: center;
+        }
 
         /* --- POPUPS --- */
         .modal-overlay {
@@ -94,8 +103,9 @@
         }
         .modal-box {
             background: #1e1e1e; padding: 25px; border-radius: 15px; border: 2px solid var(--gold);
-            text-align: center; max-width: 300px; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            text-align: center; max-width: 300px;
         }
+        .error { color: #ff5252; font-size: 12px; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -105,7 +115,7 @@
     <div id="pantalla-login" class="pantalla activa">
         <div class="login-header">
             <h1 style="color: var(--gold); margin-bottom: 5px;">🎰 CASINO</h1>
-            <p style="color: var(--text-sec); margin-top: 0;">Bienvenido de nuevo</p>
+            <p style="color: var(--text-sec); margin-top: 0;">Bienvenido</p>
         </div>
         <input type="email" id="email" placeholder="Correo electrónico">
         <input type="password" id="password" placeholder="Contraseña">
@@ -119,20 +129,16 @@
         <div class="user-card">
             <span id="etiquetaAdmin" class="admin-tag" style="display:none;">ADMIN</span>
             <span id="nombreUsuario" class="user-email">cargando...</span>
-            <span class="balance-label">SALDO DISPONIBLE</span>
+            <span style="font-size:11px; font-weight:bold;">SALDO DISPONIBLE</span>
             <span id="textoSaldo" class="balance-amount">$ 0</span>
             <span class="pot-icon">🎰</span> 
         </div>
 
-        <div id="btn-permiso-notif" class="banner-recarga banner-notif" onclick="activarFCM()">
-            🔔 <b>ACTIVAR NOTIFICACIONES</b> <br> <small>Recibe alertas con la app cerrada</small>
-        </div>
-
         <div class="banner-recarga" onclick="window.open('https://wa.me/573204491926?text=Hola,%20quiero%20recargar%20saldo', '_blank')">
-            💰 ¿Necesitas saldo? <b>Toca aquí para WhatsApp</b>
+            💰 ¿Necesitas saldo? <b>WhatsApp Aquí</b>
         </div>
         <div class="banner-recarga banner-retiro" onclick="window.open('https://wa.me/573204491926?text=Hola,%20deseo%20retirar%20mis%20ganancias', '_blank')">
-            💸 ¿Quieres retirar? <b>Toca aquí para Retirar</b>
+            💸 ¿Quieres retirar? <b>Retirar Aquí</b>
         </div>
 
         <div class="menu-grid">
@@ -154,18 +160,21 @@
         <button class="btn-danger" onclick="cerrarSesion()">CERRAR SESIÓN</button>
 
         <div id="panel-admin" style="display:none;">
-            <h3 style="color: var(--gold); margin-top:0;">👑 Panel de Control</h3>
-            <div style="background:#222; padding:10px; border-radius:8px; border:1px solid #444; margin-bottom:15px;">
-                <h4 style="margin:5px 0; color:#00e676;">📢 Notificación Global</h4>
-                <p style="font-size:11px; color:#aaa;">Nota: Para que llegue cerrada, usa la Consola de Firebase. Esto envía alerta in-app.</p>
-                <input type="text" id="txtNotificacion" placeholder="Mensaje..." style="margin-top:5px;">
-                <button class="btn-main" onclick="enviarNotificacionInApp()" style="font-size:0.9em; padding:10px;">ENVIAR ALERTA</button>
+            <h3 style="color: var(--gold); margin-top:0;">👑 Panel de Recargas</h3>
+            <p style="color:#aaa; font-size:12px;">Selecciona un usuario de la lista:</p>
+            
+            <input type="text" id="busquedaUsuario" placeholder="🔍 Buscar por correo..." style="background:#333; color:white; border:1px solid #555; padding:8px; width:100%; box-sizing:border-box;" onkeyup="filtrarUsuarios()">
+            
+            <div id="listaUsuarios" class="user-list-container"></div>
+
+            <div id="infoSeleccionado" class="selected-box" style="display:none;">
+                <span style="color:#aaa; font-size:11px;">RECARGAR A:</span><br>
+                <b id="lblUserSelect" style="color:#00e676; font-size:1.2em;">...</b>
+                <input type="hidden" id="uidDestino">
+                
+                <input type="number" id="montoRecarga" placeholder="Monto a recargar" style="margin-top:15px; text-align:center;">
+                <button class="btn-main" onclick="recargarSaldo()">ENVIAR SALDO</button>
             </div>
-            <input type="text" id="uidRecarga" placeholder="ID del Usuario">
-            <input type="number" id="montoRecarga" placeholder="Monto">
-            <button class="btn-main" onclick="recargarSaldo()">ENVIAR RECARGA</button>
-            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
-            <ul id="listaUsuarios" style="list-style:none; padding:0; font-size:12px; color:#aaa;"></ul>
         </div>
     </div>
 </div>
@@ -182,7 +191,6 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
 
 <script>
     const firebaseConfig = {
@@ -201,78 +209,112 @@
     const auth = firebase.auth();
     const db = firebase.database();
     
-    // Inicializar Messaging (Puede fallar si no es HTTPS o Localhost)
-    let messaging;
-    try {
-        messaging = firebase.messaging();
-    } catch(e) {
-        console.log("FCM no soportado aquí (necesita HTTPS):", e);
-    }
+    let listaGlobalUsuarios = [];
 
     auth.onAuthStateChanged((user) => {
         if (user) {
             mostrarPantalla('pantalla-lobby');
             cargarDatosUsuario(user);
-            if(messaging) checkNotificationPermission();
-            escucharAlertasInApp();
         } else {
             mostrarPantalla('pantalla-login');
         }
     });
 
-    // --- NOTIFICACIONES PUSH (FCM) ---
-    function checkNotificationPermission() {
-        if(Notification.permission === 'default') {
-            document.getElementById('btn-permiso-notif').style.display = 'block';
+    // --- LOGICA DE USUARIOS Y ADMIN ---
+    function cargarDatosUsuario(user) {
+        document.getElementById('nombreUsuario').innerText = user.email;
+        db.ref('usuarios/' + user.uid).on('value', (snap) => {
+            const val = snap.val();
+            if(val) {
+                const money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val.saldo || 0);
+                document.getElementById('textoSaldo').innerText = money;
+            }
+        });
+        if(user.email.toLowerCase() === CORREO_ADMIN.toLowerCase()) {
+            document.getElementById('panel-admin').style.display = "block";
+            document.getElementById('etiquetaAdmin').style.display = "block";
+            cargarListaUsuariosParaAdmin();
         }
     }
 
-    function activarFCM() {
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                document.getElementById('btn-permiso-notif').style.display = 'none';
-                
-                // Obtener Token
-                messaging.getToken({ vapidKey: 'TU_VAPID_KEY_AQUI_SI_TIENES' }).then((currentToken) => {
-                    if (currentToken) {
-                        console.log("Token FCM:", currentToken);
-                        // Guardar token en DB para que el admin sepa a quien enviar
-                        if(auth.currentUser) {
-                            db.ref('usuarios/' + auth.currentUser.uid + '/fcmToken').set(currentToken);
-                        }
-                    }
-                }).catch((err) => {
-                    console.log('Error al obtener token.', err);
+    function cargarListaUsuariosParaAdmin() {
+        db.ref('usuarios').on('value', (snap) => {
+            listaGlobalUsuarios = [];
+            snap.forEach(child => {
+                const u = child.val();
+                listaGlobalUsuarios.push({
+                    uid: child.key,
+                    email: u.email || "Sin correo",
+                    saldo: u.saldo || 0
                 });
+            });
+            renderizarLista(listaGlobalUsuarios);
+        });
+    }
+
+    function renderizarLista(lista) {
+        const contenedor = document.getElementById('listaUsuarios');
+        contenedor.innerHTML = "";
+        
+        if(lista.length === 0) {
+            contenedor.innerHTML = "<div style='padding:10px; text-align:center; color:#666;'>No hay usuarios</div>";
+            return;
+        }
+
+        lista.forEach(u => {
+            const div = document.createElement('div');
+            div.className = 'user-row';
+            div.onclick = () => seleccionarUsuario(u.uid, u.email, div);
+            div.innerHTML = `
+                <div>
+                    <b>${u.email}</b>
+                    <small>ID: ${u.uid.substring(0,6)}...</small>
+                </div>
+                <div style="color:var(--gold); font-weight:bold;">$${u.saldo}</div>
+            `;
+            contenedor.appendChild(div);
+        });
+    }
+
+    function filtrarUsuarios() {
+        const texto = document.getElementById('busquedaUsuario').value.toLowerCase();
+        const filtrados = listaGlobalUsuarios.filter(u => u.email.toLowerCase().includes(texto));
+        renderizarLista(filtrados);
+    }
+
+    function seleccionarUsuario(uid, email, elementoDOM) {
+        document.querySelectorAll('.user-row').forEach(el => el.classList.remove('selected'));
+        elementoDOM.classList.add('selected');
+        
+        document.getElementById('uidDestino').value = uid;
+        document.getElementById('lblUserSelect').innerText = email;
+        document.getElementById('infoSeleccionado').style.display = 'block';
+        
+        // Auto scroll hacia abajo para ver el input de recarga
+        document.getElementById('infoSeleccionado').scrollIntoView({behavior: "smooth"});
+    }
+
+    function recargarSaldo() {
+        const uid = document.getElementById('uidDestino').value;
+        const monto = parseInt(document.getElementById('montoRecarga').value);
+        
+        if(!uid) { alert("⚠️ Selecciona un usuario primero."); return; }
+        if(!monto) { alert("⚠️ Ingresa un monto válido."); return; }
+
+        db.ref('usuarios/' + uid).once('value').then(s => {
+            if(s.exists()){
+                const nuevoSaldo = (s.val().saldo || 0) + monto;
+                db.ref('usuarios/' + uid).update({ saldo: nuevoSaldo });
+                
+                alert(`✅ RECARGA EXITOSA\n\nUsuario: ${document.getElementById('lblUserSelect').innerText}\nMonto: $${monto}`);
+                document.getElementById('montoRecarga').value = "";
+            } else {
+                alert("Error: Usuario no encontrado en DB");
             }
         });
     }
 
-    // --- ALERTAS IN-APP (Para cuando la app está abierta) ---
-    function enviarNotificacionInApp() {
-        const msg = document.getElementById('txtNotificacion').value;
-        if(!msg) return;
-        // Escribimos en la DB, todos los clientes escuchan esto
-        db.ref('alertas_globales').push({
-            mensaje: msg,
-            timestamp: Date.now()
-        });
-        alert("Enviado (Verán la alerta si tienen la app abierta)");
-    }
-
-    function escucharAlertasInApp() {
-        db.ref('alertas_globales').limitToLast(1).on('child_added', snapshot => {
-            const data = snapshot.val();
-            const now = Date.now();
-            // Solo mostrar si tiene menos de 1 minuto de antigüedad
-            if(now - data.timestamp < 60000) {
-                alert("📢 MENSAJE DEL ADMIN:\n\n" + data.mensaje);
-                if(navigator.vibrate) navigator.vibrate([200,100,200]);
-            }
-        });
-    }
-
-    // --- FUNCIONES BÁSICAS ---
+    // --- LOGIN & REGISTRO ---
     function registrarUsuario() {
         const email = document.getElementById('email').value.trim();
         const pass = document.getElementById('password').value;
@@ -289,46 +331,13 @@
         auth.signInWithEmailAndPassword(email, pass).catch(e => document.getElementById('mensajeError').innerText = e.message);
     }
     function cerrarSesion() { auth.signOut(); }
-    function cargarDatosUsuario(user) {
-        document.getElementById('nombreUsuario').innerText = user.email;
-        db.ref('usuarios/' + user.uid).on('value', (snap) => {
-            const val = snap.val();
-            if(val) {
-                const money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val.saldo || 0);
-                document.getElementById('textoSaldo').innerText = money;
-            }
-        });
-        if(user.email.toLowerCase() === CORREO_ADMIN.toLowerCase()) {
-            document.getElementById('panel-admin').style.display = "block";
-            document.getElementById('etiquetaAdmin').style.display = "block";
-            activarListaUsuarios();
-        }
+    function recuperarClave() {
+        const email = document.getElementById('email').value.trim();
+        if(!email) return alert("Escribe tu correo en el campo de arriba primero.");
+        auth.sendPasswordResetEmail(email).then(() => alert("Correo de recuperación enviado.")).catch(e=>alert(e.message));
     }
-    function activarListaUsuarios() {
-        db.ref('usuarios').on('value', (snap) => {
-            const lista = document.getElementById('listaUsuarios');
-            lista.innerHTML = "";
-            snap.forEach(child => {
-                const u = child.val();
-                const li = document.createElement('li');
-                li.style.padding = "8px 0"; li.style.borderBottom = "1px solid #222";
-                li.innerHTML = `<b>${u.email}</b><br>Saldo: $${u.saldo} <br>
-                <small style="color:var(--gold); cursor:pointer" onclick="document.getElementById('uidRecarga').value='${child.key}'">[Copiar ID]</small>`;
-                lista.appendChild(li);
-            });
-        });
-    }
-    function recargarSaldo() {
-        const uid = document.getElementById('uidRecarga').value;
-        const monto = parseInt(document.getElementById('montoRecarga').value);
-        if(!uid || !monto) return;
-        db.ref('usuarios/' + uid).once('value').then(s => {
-            if(s.exists()){
-                db.ref('usuarios/' + uid).update({ saldo: (s.val().saldo || 0) + monto });
-                alert("OK");
-            }
-        });
-    }
+
+    // --- NAVEGACIÓN ---
     function mostrarPantalla(id) {
         document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
         document.getElementById(id).classList.add('activa');
