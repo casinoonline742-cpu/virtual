@@ -182,8 +182,8 @@
 <div id="modal-bienvenida" class="modal-overlay">
     <div class="modal-box">
         <h1>🎁</h1>
-        <h2 style="color: var(--gold);">¡BONO RECIBIDO!</h2>
-        <p>Te damos un bono de bienvenida de <b style="color:#00e676;">$500</b>.</p>
+        <h2 style="color: var(--gold);">¡BIENVENIDO PIDE TU RECARGA!</h2>
+        <p>Recarga en nuestro whatsaap <b style="color:#00e676;">+573204491926</b>.</p>
         <button class="btn-main" onclick="cerrarBienvenida()">¡A JUGAR!</button>
     </div>
 </div>
@@ -320,7 +320,7 @@
         const pass = document.getElementById('password').value;
         if(!email || !pass) return;
         auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
-            db.ref('usuarios/' + cred.user.uid).set({ email: email, saldo: 500 });
+            db.ref('usuarios/' + cred.user.uid).set({ email: email, saldo: 0 });
             document.getElementById('modal-bienvenida').style.display = 'flex';
         }).catch(e => document.getElementById('mensajeError').innerText = e.message);
     }
