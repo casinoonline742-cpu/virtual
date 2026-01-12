@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bingo Casino - Multijugador</title>
+    <title>Bingo Casino - Automático</title>
     <style>
         /* --- ESTILOS GENERALES --- */
         body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #05131a; color: white; text-align: center; margin: 0; padding: 0; padding-bottom: 120px; user-select: none; }
@@ -13,107 +13,72 @@
         .saldo { color: #00e676; font-weight: bold; font-family: monospace; font-size: 1.3em; }
         .btn-salir { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.8em; cursor: pointer; }
 
-        /* DASHBOARD (Balota y Figura) */
-        .dashboard { display: flex; align-items: center; justify-content: space-evenly; padding: 10px 0; background: #0f2027; border-bottom: 1px solid #333; }
+        /* DASHBOARD (Balota, Premio y Figura) */
+        .dashboard { display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; background: #0f2027; border-bottom: 1px solid #333; }
         
         /* Balota Grande */
         .ball-display { 
-            width: 75px; height: 75px; 
+            width: 70px; height: 70px; 
             background: radial-gradient(circle at 30% 30%, #e53935, #b71c1c); 
             border-radius: 50%; border: 4px solid white; 
-            color: white; font-weight: 900; font-size: 38px; 
+            color: white; font-weight: 900; font-size: 34px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
             box-shadow: 0 0 15px rgba(229, 57, 53, 0.5);
             animation: bounceIn 0.5s;
         }
-        .ball-letter { font-size: 14px; color: gold; margin-bottom: -5px; }
+        .ball-letter { font-size: 12px; color: gold; margin-bottom: -5px; }
         @keyframes bounceIn { 0%{transform:scale(0);} 60%{transform:scale(1.1);} 100%{transform:scale(1);} }
+
+        /* Caja de Premio en el Juego (NUEVO) */
+        .prize-box {
+            text-align: center;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            flex-grow: 1; /* Ocupa espacio disponible */
+            margin: 0 10px;
+        }
+        .prize-title { font-size: 10px; color: #aaa; letter-spacing: 1px; }
+        .prize-value { font-size: 1.4em; color: #00e676; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px rgba(0, 230, 118, 0.3); }
 
         /* Mini Figura */
         .pattern-box { text-align: center; }
-        .mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); width: 50px; height: 50px; gap: 1px; border: 1px solid #555; }
+        .mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); width: 45px; height: 45px; gap: 1px; border: 1px solid #555; }
         .celda-m { background: #222; }
         .celda-m.activo { background: #FFD700; } 
 
-        /* TABLERO MAESTRO COMPLETO (B-I-N-G-O) */
-        .tablero-maestro-wrapper { 
-            background: #111; padding: 5px; 
-            overflow-x: auto; white-space: nowrap; 
-            border-bottom: 4px solid #FFD700; 
-        }
+        /* TABLERO MAESTRO */
+        .tablero-maestro-wrapper { background: #111; padding: 5px; overflow-x: auto; white-space: nowrap; border-bottom: 4px solid #FFD700; }
         .board-row { display: flex; margin-bottom: 2px; }
-        
-        .letter-head { 
-            width: 25px; height: 25px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-weight: 900; font-size: 14px; margin-right: 3px; border-radius: 3px; 
-        }
-        .col-b { background: #0d47a1; } .col-i { background: #b71c1c; } 
-        .col-n { background: #f57f17; color:black; } .col-g { background: #1b5e20; } .col-o { background: #fbc02d; color:black; }
-
-        .num-mini { 
-            width: 25px; height: 25px; background: #222; color: #555; 
-            border: 1px solid #333; font-size: 10px; margin-right: 1px; 
-            display: flex; align-items: center; justify-content: center; border-radius: 2px;
-        }
+        .letter-head { width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; margin-right: 3px; border-radius: 3px; }
+        .col-b { background: #0d47a1; } .col-i { background: #b71c1c; } .col-n { background: #f57f17; color:black; } .col-g { background: #1b5e20; } .col-o { background: #fbc02d; color:black; }
+        .num-mini { width: 25px; height: 25px; background: #222; color: #555; border: 1px solid #333; font-size: 10px; margin-right: 1px; display: flex; align-items: center; justify-content: center; border-radius: 2px; }
         .num-mini.salio { background: #FFD700; color: black; font-weight: bold; border-color: white; }
 
         /* CARTÓN */
         #pantalla-juego { display: none; padding: 10px; animation: slideUp 0.5s; }
         @keyframes slideUp { from {transform: translateY(20px); opacity:0;} to {transform: translateY(0); opacity:1;} }
-        
-        .carton-frame { 
-            background: #fff; padding: 5px; border-radius: 10px; 
-            border: 4px solid #0277bd; max-width: 360px; margin: 0 auto; 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
-        }
+        .carton-frame { background: #fff; padding: 5px; border-radius: 10px; border: 4px solid #0277bd; max-width: 360px; margin: 0 auto; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .carton-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: #0277bd; border: 2px solid #0277bd; }
         .header-cell { background: #0277bd; color: white; font-weight: 900; font-size: 1.4em; padding: 5px 0; }
-        
-        /* CELDAS INTERACTIVAS */
-        .grid-cell { 
-            background: white; aspect-ratio: 1/1; color: black; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 1.5em; font-weight: bold; cursor: pointer; 
-            transition: transform 0.1s; user-select: none;
-            -webkit-tap-highlight-color: transparent; /* Quitar azul en móvil */
-        }
+        .grid-cell { background: white; aspect-ratio: 1/1; color: black; display: flex; align-items: center; justify-content: center; font-size: 1.5em; font-weight: bold; cursor: pointer; transition: transform 0.1s; user-select: none; -webkit-tap-highlight-color: transparent; }
         .grid-cell:active { transform: scale(0.9); background: #eee; }
-        
-        /* Estado Marcado */
         .grid-cell.marked { background-color: #2e7d32 !important; color: white; position: relative; }
         .grid-cell.marked::after { content: "X"; font-size: 1.5em; color: rgba(255,255,255,0.4); position: absolute; }
-        
-        /* Centro Gratis */
         .grid-cell.free { background: #FFD700 !important; color: black !important; font-size: 1.2em; }
 
-        /* BOTÓN FLOTANTE BINGO - ACTIVO PARA CLICK */
-        .btn-bingo-float {
-            position: fixed; bottom: 20px; right: 20px;
-            background: radial-gradient(circle, #d50000, #b71c1c);
-            border: 4px solid white; color: white;
-            width: 80px; height: 80px; border-radius: 50%;
-            font-weight: 900; font-size: 16px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.8);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; z-index: 100;
-            animation: pulseBtn 1.5s infinite;
-            display: none; 
-        }
+        /* BOTONES Y PANTALLAS */
+        .btn-bingo-float { position: fixed; bottom: 20px; right: 20px; background: radial-gradient(circle, #d50000, #b71c1c); border: 4px solid white; color: white; width: 80px; height: 80px; border-radius: 50%; font-weight: 900; font-size: 16px; box-shadow: 0 5px 20px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; animation: pulseBtn 1.5s infinite; display: none; }
         .btn-bingo-float:active { transform: scale(0.9); }
         @keyframes pulseBtn { 0% {transform:scale(1);} 50% {transform:scale(1.05);} 100% {transform:scale(1);} }
-
-        /* PANTALLA PAGO */
+        
         #pantalla-pago { padding: 40px 20px; display: block; }
         .btn-pay { background: #00e676; color: #000; padding: 15px 40px; border: none; border-radius: 30px; font-weight: bold; font-size: 1.2em; margin-top: 20px; cursor: pointer; }
         .btn-pay:disabled { filter: grayscale(1); opacity: 0.6; }
-
-        /* GANADOR Y MENSAJES */
-        .overlay-msg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         
-        .btn-secondary {
-            background: transparent; border: 2px solid white; color: white; padding: 10px 20px; margin-top: 20px; border-radius: 20px; font-weight: bold; cursor: pointer;
-        }
+        .overlay-msg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .btn-secondary { background: transparent; border: 2px solid white; color: white; padding: 10px 20px; margin-top: 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
         .btn-secondary:hover { background: rgba(255,255,255,0.1); }
     </style>
 </head>
@@ -126,10 +91,10 @@
 
     <div id="pantalla-pago">
         <h1 style="font-size: 4em; margin: 10px 0;">🎱</h1>
-        <h2 style="color: gold;">BINGO MANUAL</h2>
+        <h2 style="color: gold;">BINGO AUTOMÁTICO</h2>
         
         <div style="background:#222; padding:15px; border-radius:10px; display:inline-block; border:1px solid #444;">
-            <small style="color:#aaa;">PREMIO ACUMULADO (90%)</small>
+            <small style="color:#aaa;">PREMIO ACUMULADO</small>
             <h1 id="pozo-acumulado" style="margin:5px 0; color:#00e676; font-family:monospace;">$0</h1>
         </div>
         
@@ -144,13 +109,18 @@
         <div class="dashboard">
             <div class="ball-display">
                 <div class="ball-letter" id="lbl-letra"></div>
-                <div id="lbl-numero" style="font-size: 38px;">--</div>
+                <div id="lbl-numero" style="font-size: 34px;">--</div>
             </div>
             
+            <div class="prize-box">
+                <div class="prize-title">JUGAMOS POR</div>
+                <div id="dash-premio" class="prize-value">$0</div>
+            </div>
+
             <div class="pattern-box">
-                <small style="font-size:10px; color:#aaa;">FIGURA</small>
+                <small style="font-size:9px; color:#aaa;">FIGURA</small>
                 <div id="mini-mapa" class="mini-grid"></div>
-                <small id="nombre-patron" style="font-size:10px; color:gold;">...</small>
+                <small id="nombre-patron" style="font-size:9px; color:gold;">...</small>
             </div>
         </div>
 
@@ -206,7 +176,7 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
-        // 2. DATOS DE CARTONES (Resumido para el ejemplo, asegurate de tener todos tus cartones cargados)
+        // 2. DATOS DE CARTONES (Resumido, asegurate de tener todos tus cartones cargados)
         const cartones = [
   { "id": "1090445448", "carton": 1, "numeros": [11,9,6,13,8,20,29,19,30,17,40,43,0,33,38,50,59,47,48,49,75,64,69,66,62] },
   { "id": "1090457831", "carton": 2, "numeros": [5,12,10,3,4,24,22,18,28,23,39,42,0,41,35,52,58,56,57,53,72,71,63,70,73] },
@@ -2546,11 +2516,14 @@
                 });
                 
                 initTableroMaestro(); 
+                
+                // Intento ser el cerebro, si se recarga, la lógica dentro gestiona la recuperación
                 gestionarCerebro();
+                
+                // Escuchar cambios visuales
                 escucharEstado();
                 
-                // --- NUEVO: PERSISTENCIA DEL CARTÓN ---
-                // Si recargas la página, verificamos si ya estabas en juego
+                // Recuperar mi cartón si ya estaba jugando
                 verificarSiYaEstabaJugando();
 
             } else {
@@ -2558,30 +2531,36 @@
             }
         });
 
+        // 5. RESTAURAR SESIÓN DEL JUGADOR
         async function verificarSiYaEstabaJugando() {
             const snap = await db.ref('bingo_jugadores/' + usuario.uid).get();
             if (snap.exists()) {
-                // Restaurar cartón
                 const data = snap.val();
                 miCarton = data.carton;
                 dibujarMiCarton(miCarton);
                 
-                // Mostrar interfaz de juego directamente
                 document.getElementById('pantalla-pago').style.display = 'none';
                 document.getElementById('interfaz-juego').style.display = 'block';
                 document.getElementById('pantalla-juego').style.display = 'block';
                 document.getElementById('btn-gritar').style.display = 'flex';
-                console.log("Cartón restaurado: " + miCarton.carton);
+                
+                const estadoSnap = await db.ref('bingo_estado').get();
+                if(estadoSnap.exists() && (estadoSnap.val().fase === 'ESPERA' || estadoSnap.val().fase === 'INSUFICIENTE')) {
+                     document.getElementById('interfaz-juego').style.display = 'none';
+                     document.getElementById('pantalla-pago').style.display = 'block';
+                     document.getElementById('btn-comprar').innerText = "CARTÓN COMPRADO";
+                     document.getElementById('btn-comprar').disabled = true;
+                }
             }
         }
 
-        // 5. CEREBRO DEL JUEGO (SERVIDOR)
+        // 6. CEREBRO DEL JUEGO (AUTOMÁTICO)
         function gestionarCerebro() {
             const ref = db.ref('server_bingo/master');
             ref.onDisconnect().remove();
             ref.transaction(curr => { return curr === null ? usuario.uid : curr; }, (err, comm, snap) => {
                 if(comm && snap.val() === usuario.uid) {
-                    console.log("--- MODULO MAESTRO ACTIVO ---");
+                    console.log("--- MODULO MAESTRO ACTIVO (CONTROL TOTAL) ---");
                     cicloDeJuego();
                 }
             });
@@ -2589,140 +2568,127 @@
 
         async function cicloDeJuego() {
             while(true) {
-                // FASE 1: ESPERA
-                // Reiniciar estado
-                await db.ref('bingo_estado').set({ fase: 'ESPERA', tiempo: 30 });
-                // NOTA: NO borramos bingo_jugadores aquí para permitir que la gente entre. 
-                // Se borra SOLO al reiniciar después de un ganador.
+                // A. VERIFICAR SI HAY JUEGO EN CURSO (RESUMIR)
+                const snapEstado = await db.ref('bingo_estado').get();
+                let estadoActual = snapEstado.val();
                 
-                // Cuenta regresiva
-                for(let i=30; i>0; i--) {
-                    await db.ref('bingo_estado/tiempo').set(i);
-                    await new Promise(r => setTimeout(r, 1000));
+                let bolsa = [];
+                
+                if (estadoActual && estadoActual.fase === 'JUGANDO' && !estadoActual.ganador) {
+                    console.log("⚠️ Juego en curso detectado. Reanudando...");
+                    const salieron = estadoActual.historial || [];
+                    bolsa = Array.from({length: 75}, (_, i) => i + 1).filter(n => !salieron.includes(n));
+                } 
+                else {
+                    // SI NO HAY JUEGO, EMPEZAMOS FLUJO NORMAL
+                    
+                    // 1. ESPERAR MÍNIMO 2 JUGADORES
+                    let jugadoresSnap = await db.ref('bingo_jugadores').once('value');
+                    let numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
+
+                    while (numJugadores < 2) {
+                        await db.ref('bingo_estado').update({ fase: 'INSUFICIENTE', tiempo: 0 });
+                        await new Promise(r => setTimeout(r, 2000));
+                        jugadoresSnap = await db.ref('bingo_jugadores').once('value');
+                        numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
+                    }
+
+                    // 2. CUENTA REGRESIVA
+                    await db.ref('bingo_estado').set({ fase: 'ESPERA', tiempo: 30 });
+                    for(let i=30; i>0; i--) {
+                        await db.ref('bingo_estado/tiempo').set(i);
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+
+                    // 3. INICIAR JUEGO NUEVO
+                    const keys = Object.keys(PATRONES);
+                    const fig = keys[Math.floor(Math.random() * keys.length)];
+                    await db.ref('bingo_estado').update({ fase: 'JUGANDO', patron: fig, historial: [], ultima: null, ganador: null });
+                    
+                    bolsa = Array.from({length: 75}, (_, i) => i + 1);
                 }
 
-                // --- NUEVO: VERIFICACIÓN DE JUGADORES MÍNIMOS ---
-                let jugadoresSnap = await db.ref('bingo_jugadores').once('value');
-                let numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
-
-                while (numJugadores < 2) {
-                    // Estado especial: Faltan jugadores
-                    await db.ref('bingo_estado').update({ fase: 'INSUFICIENTE', tiempo: 0 });
-                    
-                    // Esperar 2 segundos antes de volver a verificar
-                    await new Promise(r => setTimeout(r, 2000));
-                    
-                    jugadoresSnap = await db.ref('bingo_jugadores').once('value');
-                    numJugadores = jugadoresSnap.exists() ? jugadoresSnap.numChildren() : 0;
-                }
-
-                // FASE 2: JUEGO
-                const keys = Object.keys(PATRONES);
-                const fig = keys[Math.floor(Math.random() * keys.length)];
-                
-                // Limpiar historial antiguo y setear patrón
-                await db.ref('bingo_estado').update({ fase: 'JUGANDO', patron: fig, historial: [], ultima: null });
-
-                let bolsa = Array.from({length: 75}, (_, i) => i + 1);
-                let historial = [];
-                
+                // B. BUCLE DE SACAR BALOTAS
                 while(bolsa.length > 0) {
-                    // --- CORRECCIÓN: PARADA INMEDIATA ---
-                    // Verificamos antes de sacar balota si ya hay ganador
                     let checkWin = await db.ref('bingo_estado/ganador').get();
                     if(checkWin.exists()) break; 
 
                     const idx = Math.floor(Math.random() * bolsa.length);
                     const n = bolsa.splice(idx, 1)[0];
-                    historial.push(n);
-
-                    // Publicar balota
-                    await db.ref('bingo_estado/ultima').set(n);
-                    await db.ref('bingo_estado/historial').set(historial);
-
-                    // Esperar 4 segundos (verificando estado intermedio si es posible, pero simple por ahora)
-                    await new Promise(r => setTimeout(r, 4000)); 
                     
-                    // Verificamos inmediatamente después de la espera
+                    let snapH = await db.ref('bingo_estado/historial').get();
+                    let hist = snapH.val() || [];
+                    hist.push(n);
+
+                    await db.ref('bingo_estado').update({
+                        ultima: n,
+                        historial: hist
+                    });
+
+                    // TIEMPO ENTRE BALOTAS
+                    await new Promise(r => setTimeout(r, 4000));
+                    
                     checkWin = await db.ref('bingo_estado/ganador').get();
                     if(checkWin.exists()) break;
                 }
 
-                // FASE 3: REINICIO (5 Segundos)
-                // Si salimos del bucle es porque se acabaron las balotas o hubo ganador
+                // C. FIN DEL JUEGO / REINICIO
                 const finalCheck = await db.ref('bingo_estado/ganador').get();
                 if(finalCheck.exists()) {
-                    await new Promise(r => setTimeout(r, 5000)); 
-                    // Limpieza total para nueva partida
-                    await db.ref('bingo_estado/ganador').remove();
-                    await db.ref('bingo_jugadores').remove(); // AHORA SÍ borramos jugadores para obligar a comprar nuevo cartón
-                    await db.ref('bingo_estado/ultima').remove();
-                    await db.ref('bingo_estado/historial').remove();
+                    await new Promise(r => setTimeout(r, 5000));
+                    await db.ref('bingo_estado').remove(); 
+                    await db.ref('bingo_jugadores').remove(); 
+                } else {
+                    await db.ref('bingo_estado').set({ fase: 'INSUFICIENTE', tiempo: 0 });
                 }
             }
         }
 
-        // 6. VALIDAR BINGO MANUAL
+        // 7. FUNCIONES DE JUGADOR
         async function intentarCantarBingo() {
             if(!miCarton) return;
-            
             const snapSt = await db.ref('bingo_estado').get();
             const st = snapSt.val();
             
-            // Solo se puede cantar si estamos jugando y no hay ganador aún
             if(st.fase !== 'JUGANDO' || st.ganador) return;
 
             const patronIndices = PATRONES[st.patron];
             const misNumeros = miCarton.numeros; 
             const cantados = numerosCantadosGlobal;
 
-            // Validación
             const esValido = patronIndices.every(idx => {
                 const n = misNumeros[idx];
-                if(n === 0) return true; // Centro
+                if(n === 0) return true;
                 return cantados.includes(n);
             });
 
             if(esValido) {
-                // Cálculo del premio
                 const snapJugadores = await db.ref('bingo_jugadores').get();
                 const total = snapJugadores.numChildren() * COSTO;
-                const premioNeto = total * 0.90; 
+                const premioNeto = total * 0.80; // CAMBIO: AHORA ES EL 80%
 
-                // Pago
                 await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + premioNeto);
 
-                // Anunciar victoria (Esto detiene el bucle del maestro)
                 await db.ref('bingo_estado').update({
                     fase: 'GANADOR',
                     ganadorNombre: usuario.email.split('@')[0],
                     ganadorPremio: premioNeto,
-                    ganadorUid: usuario.uid,
-                    ganador: true // Bandera explícita para detener loop
+                    ganador: true 
                 });
             } else {
                 if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                alert("❌ ¡BINGO INCORRECTO! Revisa bien tu cartón.");
+                alert("❌ BINGO INCORRECTO");
             }
         }
 
-        // --- NUEVA FUNCIÓN: SALIR Y REEMBOLSAR ---
         async function salirYReembolsar() {
             if(!miCarton) return;
-            
-            // 1. Devolver dinero
             await db.ref('usuarios/'+usuario.uid+'/saldo').transaction(s => (s||0) + COSTO);
-            
-            // 2. Borrar de la lista de jugadores
             await db.ref('bingo_jugadores/'+usuario.uid).remove();
-            
-            // 3. Limpiar local
             miCarton = null;
-            document.getElementById('overlay-espera').style.display = 'none';
-            location.reload(); // Recargar para volver al inicio limpio
+            location.reload(); 
         }
 
-        // 7. CLIENTE (INTERFAZ)
         function comprarCarton() {
             if(saldo < COSTO) return alert("Saldo insuficiente");
             
@@ -2742,33 +2708,7 @@
             document.getElementById('btn-gritar').style.display = 'flex';
         }
 
-        function dibujarMiCarton(c) {
-            document.getElementById('num-carton-txt').innerText = c.carton;
-            const grid = document.getElementById('celdas-container');
-            grid.innerHTML = "";
-            
-            // Reorganizar visualmente para Grid CSS (Fila por Fila para coincidir con diseño tradicional)
-            let visual = [];
-            for(let f=0; f<5; f++) {
-                for(let col=0; col<5; col++) visual.push(c.numeros[col*5 + f]);
-            }
-
-            visual.forEach(n => {
-                let div = document.createElement('div');
-                div.className = 'grid-cell';
-                div.id = 'cell-'+n;
-                if(n===0) { div.innerText = "★"; div.classList.add('marked', 'free'); } 
-                else { 
-                    div.innerText = n;
-                    div.onclick = function() { 
-                        this.classList.toggle('marked');
-                        if(navigator.vibrate) navigator.vibrate(30);
-                    };
-                }
-                grid.appendChild(div);
-            });
-        }
-
+        // 8. ESCUCHAS Y VISUALIZACIÓN
         function escucharEstado() {
             db.ref('bingo_estado').on('value', snap => {
                 const st = snap.val();
@@ -2777,25 +2717,28 @@
                 db.ref('bingo_jugadores').on('value', js => {
                     const n = js ? js.numChildren() : 0;
                     document.getElementById('contador-jugadores').innerText = "Jugadores en sala: " + n;
+                    
+                    // CALCULO DINÁMICO DEL PREMIO (80%)
                     const total = n * COSTO;
-                    const premio = total * 0.90;
+                    const premio = total * 0.80;
+                    
+                    // Actualizar en Pantalla Pago
                     document.getElementById('pozo-acumulado').innerText = "$" + premio.toLocaleString();
+                    
+                    // Actualizar en Dashboard (Juego)
+                    document.getElementById('dash-premio').innerText = "$" + premio.toLocaleString();
                 });
 
-                // ESTADO: INSUFICIENTE (Faltan jugadores)
                 if (st.fase === 'INSUFICIENTE') {
                     if (miCarton) {
-                        // Si ya compré, muéstrame la opción de esperar o salir
                         document.getElementById('overlay-espera').style.display = 'flex';
                         document.getElementById('msg-status').innerText = "Esperando jugadores...";
                     } else {
-                        // Si no he comprado, solo veo el mensaje en la pantalla de compra
                         document.getElementById('msg-status').innerText = "Esperando más jugadores...";
                     }
                 }
-                // ESTADO: ESPERA
                 else if(st.fase === 'ESPERA') {
-                    document.getElementById('overlay-espera').style.display = 'none'; // Ocultar overlay si ya arranca
+                    document.getElementById('overlay-espera').style.display = 'none';
                     resetMesa();
                     document.getElementById('msg-status').innerText = "⏳ Inicia en " + st.tiempo + "s";
                     
@@ -2805,7 +2748,6 @@
                         document.getElementById('lbl-letra').innerText = "TIEMPO";
                         document.getElementById('lbl-numero').innerText = st.tiempo;
                         document.getElementById('lbl-numero').style.fontSize = "30px";
-                        
                         document.getElementById('btn-gritar').style.opacity = "0.5";
                         document.getElementById('btn-gritar').style.pointerEvents = "none";
                     } else {
@@ -2815,27 +2757,25 @@
                         document.getElementById('btn-comprar').innerText = "JUGAR AHORA";
                     }
                 } 
-                // ESTADO: JUGANDO
                 else if(st.fase === 'JUGANDO') {
                     document.getElementById('overlay-espera').style.display = 'none';
                     if(miCarton) {
                         document.getElementById('interfaz-juego').style.display = 'block';
                         document.getElementById('btn-gritar').style.opacity = "1";
                         document.getElementById('btn-gritar').style.pointerEvents = "all";
-                        if(st.ultima) document.getElementById('lbl-numero').style.fontSize = "38px"; 
+                        if(st.ultima) document.getElementById('lbl-numero').style.fontSize = "34px"; 
                     }
                     if(st.patron) {
                         dibujarMiniFigura(PATRONES[st.patron]);
                         document.getElementById('nombre-patron').innerText = st.patron;
                     }
                 } 
-                // ESTADO: GANADOR
                 else if(st.fase === 'GANADOR') {
                     document.getElementById('overlay-espera').style.display = 'none';
                     document.getElementById('overlay-ganador').style.display = 'flex';
                     document.getElementById('win-nombre').innerText = st.ganadorNombre;
                     document.getElementById('win-premio').innerText = "$" + st.ganadorPremio.toLocaleString();
-                    miCarton = null; // Reiniciar cartón local al finalizar
+                    miCarton = null; 
                 }
             });
 
@@ -2867,7 +2807,7 @@
             });
         }
 
-        // --- VISUALES ---
+        // --- AUXILIARES VISUALES ---
         function initTableroMaestro() {
             const container = document.getElementById('grid-maestra');
             container.innerHTML = "";
@@ -2878,7 +2818,6 @@
                 {l:'G', s:46, e:60, c:'col-g'},
                 {l:'O', s:61, e:75, c:'col-o'}
             ];
-
             config.forEach(item => {
                 let row = document.createElement('div');
                 row.className = 'board-row';
@@ -2886,7 +2825,6 @@
                 letter.className = `letter-head ${item.c}`;
                 letter.innerText = item.l;
                 row.appendChild(letter);
-
                 for(let i=item.s; i<=item.e; i++) {
                     let cell = document.createElement('div');
                     cell.className = 'num-mini';
@@ -2895,6 +2833,30 @@
                     row.appendChild(cell);
                 }
                 container.appendChild(row);
+            });
+        }
+
+        function dibujarMiCarton(c) {
+            document.getElementById('num-carton-txt').innerText = c.carton;
+            const grid = document.getElementById('celdas-container');
+            grid.innerHTML = "";
+            let visual = [];
+            for(let f=0; f<5; f++) {
+                for(let col=0; col<5; col++) visual.push(c.numeros[col*5 + f]);
+            }
+            visual.forEach(n => {
+                let div = document.createElement('div');
+                div.className = 'grid-cell';
+                div.id = 'cell-'+n;
+                if(n===0) { div.innerText = "★"; div.classList.add('marked', 'free'); } 
+                else { 
+                    div.innerText = n;
+                    div.onclick = function() { 
+                        this.classList.toggle('marked');
+                        if(navigator.vibrate) navigator.vibrate(30);
+                    };
+                }
+                grid.appendChild(div);
             });
         }
 
@@ -2918,7 +2880,6 @@
             document.getElementById('lbl-letra').innerText = "";
             document.getElementById('overlay-ganador').style.display = 'none';
             numerosCantadosGlobal = [];
-            // Limpia el cartón del jugador
             document.querySelectorAll('.grid-cell').forEach(e => {
                 if(!e.classList.contains('free')) e.classList.remove('marked');
             });
