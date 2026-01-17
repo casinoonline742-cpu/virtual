@@ -19,28 +19,26 @@
 
         body { 
             font-family: 'Roboto', sans-serif; 
-            
-            /* --- FONDO MESA.JPG IGUAL QUE BLACKJACK --- */
+            /* Fondo de mesa */
             background-image: url('mesa.jpg'); 
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-
             color: white; 
             margin: 0; padding: 0; 
             text-align: center;
             height: 100vh;
+            height: 100dvh; /* Mejor soporte para móviles modernos */
             display: flex; flex-direction: column;
-            overflow: hidden;
-            position: relative; /* Necesario para la capa oscura */
+            overflow: hidden; /* Evita scroll */
+            position: relative;
         }
         
-        /* CAPA OSCURA (Para que se lea el texto sobre la foto) */
+        /* Capa oscura para legibilidad */
         body::before {
             content: "";
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.5); 
             z-index: -1;
         }
@@ -50,25 +48,29 @@
             background: rgba(0,0,0,0.9); padding: 10px 15px; 
             display: flex; justify-content: space-between; align-items: center; 
             border-bottom: 2px solid rgba(255,215,0,0.3); z-index: 50;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            flex-shrink: 0; /* No se encoge */
         }
-        .saldo { color: var(--verde-win); font-weight: bold; font-family: monospace; font-size: 1.3em; text-shadow: 1px 1px 2px black; }
-        .btn-salir { background: var(--rojo-loss); color: white; border: none; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8em; font-weight: bold;}
+        .saldo { color: var(--verde-win); font-weight: bold; font-family: monospace; font-size: 1.2em; text-shadow: 1px 1px 2px black; }
+        .btn-salir { background: var(--rojo-loss); color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8em; font-weight: bold;}
 
-        /* MESA */
+        /* MESA DE JUEGO (Layout Flexible) */
         .poker-table {
             flex: 1;
-            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            padding: 20px 10px;
-            perspective: 1000px; /* Efecto 3D leve */
+            display: flex; flex-direction: column; 
+            align-items: center; 
+            justify-content: space-between; /* Distribuye elementos */
+            /* Aumenté el padding inferior a 60px para subir el botón */
+            padding: 20px 10px 80px 10px; 
+            perspective: 1000px;
         }
 
-        /* CARTAS */
+        /* CARTAS Y SLOTS */
         .card-slot { 
             width: 55px; height: 80px; 
             background: rgba(255,255,255,0.1); 
             border: 1px dashed rgba(255,255,255,0.3); 
             margin: 3px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; 
+            transition: all 0.3s ease;
         }
         .card { 
             width: 100%; height: 100%; 
@@ -81,25 +83,25 @@
         .card.red { color: #d32f2f; } .card.black { color: #111; }
         .card-val { font-size: 1.2em; line-height: 1; }
         .card-suit { font-size: 1.4em; line-height: 1; }
-        
-        /* Carta trasera con patrón */
         .card-back { 
-            background: linear-gradient(135deg, #b71c1c, #800000);
-            border: 2px solid white;
+            background: linear-gradient(135deg, #b71c1c, #800000); border: 2px solid white;
             background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 2px, transparent 2px, transparent 4px);
         }
 
         /* ZONAS */
         .community-zone { 
             background: rgba(0,0,0,0.6); 
-            padding: 10px; border-radius: 30px; 
+            padding: 8px; border-radius: 30px; 
             border: 1px solid var(--oro); 
             margin: 5px 0; 
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
         }
         
-        /* BOTONES */
-        .controls { display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 400px; margin-bottom: 20px; }
+        /* BOTONES - Botón amarillo subido */
+        .controls { 
+            display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 400px; 
+            margin-bottom: 20px; /* Margen extra para despegarlo del borde */
+        }
         .btn-action { 
             padding: 15px 0; width: 45%; border-radius: 30px; border: none; 
             font-weight: bold; cursor: pointer; font-size: 1.1rem; text-transform: uppercase; color: white; 
@@ -112,7 +114,7 @@
         .btn-deal { 
             background: linear-gradient(to bottom, var(--oro), #e6c200); 
             color: black; width: 80%; font-size: 1.3rem; 
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
             animation: pulse 2s infinite; 
         }
 
@@ -122,32 +124,50 @@
             border: 1px solid rgba(255,215,0,0.3); display: inline-block;
         }
 
+        /* --- RESPONSIVE: AJUSTES PARA CELULARES PEQUEÑOS --- */
+        @media (max-width: 380px) {
+            .card-slot { width: 42px; height: 60px; margin: 2px; } /* Cartas más pequeñas */
+            .card-val { font-size: 0.9em; }
+            .card-suit { font-size: 1em; }
+            .community-zone { padding: 5px; width: 95%; box-sizing: border-box; }
+            #community-cards { display: flex; justify-content: center; }
+            .btn-action { padding: 12px 0; font-size: 1rem; }
+        }
+
+        /* AJUSTES PARA PANTALLAS DE POCA ALTURA (Horizontal o Celulares cortos) */
+        @media (max-height: 650px) {
+            .poker-table { padding-bottom: 30px; padding-top: 10px; } /* Menos espacio abajo si la pantalla es corta */
+            .card-slot { width: 45px; height: 65px; }
+            .msg-status { font-size: 0.9em; margin-bottom: 2px; }
+            .dealer-zone label, .player-zone label { font-size: 0.7em; }
+        }
+
         @keyframes flip { from { transform: rotateY(90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
         <div class="saldo" id="display-saldo">Cargando...</div>
-        <div class="btn-salir" onclick="location.href='index.html'">Volver</div>
+        <div class="btn-salir" onclick="location.href='index.html'">Salir</div>
     </div>
 
     <div class="poker-table" id="mesa-juego">
         
-        <div>
+        <div class="dealer-zone">
             <div style="font-size:0.8em; color:#ccc; margin-bottom:4px; letter-spacing:2px; text-shadow: 1px 1px 2px black;">DEALER</div>
             <div id="dealer-cards"><div class="card-slot"></div><div class="card-slot"></div></div>
         </div>
 
         <div class="community-zone">
-            <div style="font-size:0.7em; color:var(--oro); margin-bottom:5px; text-transform:uppercase;">Cartas Comunitarias</div>
+            <div style="font-size:0.7em; color:var(--oro); margin-bottom:5px; text-transform:uppercase;">Mesa</div>
             <div id="community-cards">
                 <div class="card-slot"></div><div class="card-slot"></div><div class="card-slot"></div><div class="card-slot"></div><div class="card-slot"></div>
             </div>
         </div>
 
-        <div>
+        <div class="player-zone">
             <div id="status-text" class="msg-status">Presiona REPARTIR</div>
             <div id="player-cards"><div class="card-slot"></div><div class="card-slot"></div></div>
             <div style="font-size:0.9em; color:var(--verde-win); margin-top:5px; font-weight:bold; text-shadow: 1px 1px 2px black;">TUS CARTAS</div>
@@ -164,7 +184,7 @@
     </div>
 
     <script>
-        // --- CONFIGURACIÓN FIREBASE (Casino Familia) ---
+        // --- CONFIGURACIÓN FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
             authDomain: "casino-familia.firebaseapp.com",
@@ -185,7 +205,7 @@
         let mazo = [], manoJugador = [], manoDealer = [], cartasMesa = [];
         const ante = 100;
 
-        // --- SEGURIDAD DE SESIÓN ---
+        // --- SEGURIDAD ---
         auth.onAuthStateChanged(u => {
             if(u) {
                 usuario = u;
@@ -239,14 +259,11 @@
         function iniciarMano() {
             if(saldo < ante) return alert("Saldo insuficiente");
 
-            // Descontar saldo en DB
             db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - ante });
 
-            // UI
             document.getElementById('controles-fase1').style.display = 'none';
             document.querySelectorAll('.card-slot').forEach(e => e.innerHTML = ""); 
             
-            // Cartas
             crearMazo();
             manoJugador = [mazo.pop(), mazo.pop()];
             manoDealer = [mazo.pop(), mazo.pop()];
@@ -293,14 +310,12 @@
             renderCarta(manoDealer[0], 'dealer-cards', 0);
             renderCarta(manoDealer[1], 'dealer-cards', 1);
 
-            // LOGICA BÁSICA (Jugador vs Dealer)
+            // LOGICA BÁSICA DEMOSTRATIVA
             let scoreJugador = Math.floor(Math.random() * 100);
             let scoreDealer = Math.floor(Math.random() * 100);
             
-            // Boost por buenas cartas
             if(manoJugador.some(c => c.val === 'A')) scoreJugador += 25;
             if(manoJugador.some(c => c.val === 'K')) scoreJugador += 15;
-            // Boost si hay par en mano
             if(manoJugador[0].val === manoJugador[1].val) scoreJugador += 30;
 
             if(scoreJugador > scoreDealer) {
