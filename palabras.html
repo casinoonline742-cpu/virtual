@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Speed Words - Casino</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        :root {
+            --bg: #121212;
+            --oro: #FFD700;
+            --verde: #00e676;
+            --rojo: #ff5252;
+            --azul: #2979ff;
+        }
+
+        body { 
+            background-color: var(--bg); 
+            font-family: 'Roboto', sans-serif; 
+            color: white; 
+            margin: 0; padding: 0; 
+            text-align: center;
+            height: 100vh; height: 100dvh;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            background-image: radial-gradient(circle at center, #1e1e1e 0%, #000 100%);
+        }
+
+        /* HEADER */
+        .top-bar { 
+            background: #000; padding: 10px 15px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 2px solid var(--oro); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+        .saldo { color: var(--verde); font-weight: bold; font-family: monospace; font-size: 1.3em; }
+        .btn-salir { background: #333; color: white; border: 1px solid #555; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 0.8em; }
+
+        /* JUEGO CONTENEDOR */
+        .game-container {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between; /* Distribuye espacio */
+            padding: 15px;
+            max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box;
+            overflow-y: auto; /* Permite scroll si es muy pequeño el alto */
+        }
+
+        /* INFORMACIÓN */
+        .info-panel { margin-bottom: 10px; width: 100%; flex-shrink: 0;}
+        .categoria { color: #aaa; font-size: 0.9em; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+        .pista { font-size: 1.1em; color: white; font-weight: bold; margin-bottom: 10px; }
+        
+        .timer-circle {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            border: 5px solid var(--oro);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2em; font-weight: 900;
+            margin: 0 auto;
+            color: var(--oro);
+            background: rgba(0,0,0,0.3);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+            transition: all 0.2s;
+        }
+        .timer-danger { border-color: var(--rojo); color: var(--rojo); animation: pulse 0.5s infinite; }
+
+        /* PALABRA A FORMAR (Slots) */
+        .word-slots {
+            display: flex; gap: 5px; justify-content: center; 
+            margin: 10px 0;
+            flex-wrap: wrap; /* Importante para que bajen si no caben */
+            min-height: 50px;
+            flex-shrink: 0;
+        }
+        .slot {
+            width: 45px; height: 55px; /* Tamaño base */
+            border-bottom: 3px solid #555;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8em; font-weight: bold;
+            text-transform: uppercase;
+            color: white;
+            transition: all 0.2s;
+        }
+        .slot.filled { border-bottom-color: var(--oro); color: var(--oro); }
+
+        /* TECLADO DE LETRAS (Pool) */
+        .letter-pool {
+            display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+            margin-bottom: 10px;
+            align-content: center;
+        }
+        .letter-btn {
+            width: 48px; height: 48px;
+            background: linear-gradient(145deg, #333, #222);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: white; font-size: 1.4em; font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #111;
+            touch-action: manipulation; /* Mejora respuesta táctil */
+        }
+        .letter-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #111; }
+        .letter-btn.used { opacity: 0.2; pointer-events: none; transform: scale(0.9); box-shadow: none; border: 1px solid #222; }
+
+        /* RESPONSIVIDAD AVANZADA */
+        /* Si la pantalla es pequeña (celulares estrechos) */
+        @media (max-width: 380px) {
+            .slot { width: 35px; height: 45px; font-size: 1.4em; }
+            .letter-btn { width: 40px; height: 40px; font-size: 1.2em; }
+            .timer-circle { width: 60px; height: 60px; font-size: 1.8em; }
+        }
+
+        /* CONTROLES */
+        .controls { width: 100%; display: flex; gap: 10px; margin-top: auto; padding-bottom: 10px; }
+        .btn-action {
+            flex: 1; padding: 15px; border: none; border-radius: 12px;
+            font-size: 1.1em; font-weight: bold; cursor: pointer;
+            text-transform: uppercase;
+        }
+        .btn-clear { background: var(--rojo); color: white; box-shadow: 0 4px 0 #b71c1c; }
+        .btn-start { 
+            background: var(--oro); color: black; width: 100%; 
+            box-shadow: 0 4px 0 #b78900; font-size: 1.5em; 
+            animation: pulse-gold 2s infinite;
+        }
+
+        /* OVERLAY RESULTADO */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .result-box {
+            background: #222; padding: 30px; border-radius: 20px;
+            border: 2px solid var(--oro); width: 85%; max-width: 300px;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); } }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="saldo" id="display-saldo">Cargando...</div>
+        <div class="btn-salir" onclick="window.location.href='index.html'">Salir</div>
+    </div>
+
+    <div id="pantalla-inicio" class="game-container" style="justify-content: center;">
+        <h1 style="color:var(--oro); font-size: 3em; margin-bottom: 0;">SPEED<br>WORDS</h1>
+        <p style="color:#aaa;">Apuesta $100</p>
+        
+        <div style="text-align:left; background:#222; padding:15px; border-radius:10px; margin:20px 0; font-size:0.9em; color:#ccc; width: 100%; box-sizing: border-box;">
+            <div style="margin-bottom:5px;">⏱️ <b>TIEMPO:</b></div>
+            <div style="font-size:0.85em; margin-bottom:10px; color:#888;">
+                • ≤ 5 Letras: <b>5 Segundos</b><br>
+                • > 5 Letras: <b>+1 Seg por letra</b>
+            </div>
+            
+            <div style="margin-bottom:5px;">💰 <b>PREMIOS:</b></div>
+            • Cortas (3-4): <b style="color:var(--verde)">x2 ($200)</b><br>
+            • Medias (5-6): <b style="color:var(--azul)">x3 ($300)</b><br>
+            • Largas (7+): <b style="color:var(--oro)">x4 ($400)</b>
+        </div>
+
+        <button class="btn-action btn-start" onclick="iniciarJuego()">JUGAR ($100)</button>
+    </div>
+
+    <div id="pantalla-juego" class="game-container" style="display:none;">
+        
+        <div class="info-panel">
+            <div id="txt-categoria" class="categoria">ANIMAL</div>
+            <div id="txt-pista" class="pista">Empieza con F</div>
+            <div id="timer" class="timer-circle">5</div>
+        </div>
+
+        <div id="slots-container" class="word-slots"></div>
+
+        <div id="pool-container" class="letter-pool"></div>
+
+        <div class="controls">
+            <button class="btn-action btn-clear" onclick="borrarTodo()">BORRAR</button>
+        </div>
+    </div>
+
+    <div id="overlay-result" class="overlay">
+        <div class="result-box">
+            <h1 id="res-titulo" style="margin:0; font-size:2.5em;">¡TIEMPO!</h1>
+            <p id="res-mensaje" style="color:#ccc; margin:10px 0;">La palabra era: FOCA</p>
+            <h2 id="res-ganancia" style="color:var(--verde); font-size:2em; margin:10px 0;">$0</h2>
+            <button class="btn-action btn-start" style="font-size:1em; margin-top:20px;" onclick="cerrarOverlay()">JUGAR OTRA VEZ</button>
+        </div>
+    </div>
+
+    <script>
+        // --- BASE DE DATOS DE PALABRAS ---
+        const DB_PALABRAS = [
+            { cat: 'ANIMAL', w: 'OSO' }, { cat: 'ANIMAL', w: 'LEON' }, { cat: 'ANIMAL', w: 'TIGRE' }, 
+            { cat: 'ANIMAL', w: 'PERRO' }, { cat: 'ANIMAL', w: 'GATO' }, { cat: 'ANIMAL', w: 'PUMA' },
+            { cat: 'ANIMAL', w: 'JIRAFA' }, { cat: 'ANIMAL', w: 'DELFIN' }, { cat: 'ANIMAL', w: 'TIBURON' },
+            { cat: 'ANIMAL', w: 'ELEFANTE' }, { cat: 'ANIMAL', w: 'MURCIELAGO' }, { cat: 'ANIMAL', w: 'HIPOPOTAMO' },
+
+            { cat: 'FRUTA', w: 'UVA' }, { cat: 'FRUTA', w: 'PIÑA' }, { cat: 'FRUTA', w: 'PERA' },
+            { cat: 'FRUTA', w: 'HIGO' }, { cat: 'FRUTA', w: 'COCO' }, { cat: 'FRUTA', w: 'KIWI' },
+            { cat: 'FRUTA', w: 'MANZANA' }, { cat: 'FRUTA', w: 'SANDIA' }, { cat: 'FRUTA', w: 'BANANO' },
+            { cat: 'FRUTA', w: 'MANDARINA' }, { cat: 'FRUTA', w: 'GUANABANA' },
+
+            { cat: 'PAIS', w: 'PERU' }, { cat: 'PAIS', w: 'CUBA' }, { cat: 'PAIS', w: 'CHILE' },
+            { cat: 'PAIS', w: 'CHINA' }, { cat: 'PAIS', w: 'JAPON' }, { cat: 'PAIS', w: 'RUSIA' },
+            { cat: 'PAIS', w: 'BRASIL' }, { cat: 'PAIS', w: 'ESPAÑA' }, { cat: 'PAIS', w: 'CANADA' },
+            { cat: 'PAIS', w: 'COLOMBIA' }, { cat: 'PAIS', w: 'ARGENTINA' }, { cat: 'PAIS', w: 'VENEZUELA' },
+
+            { cat: 'OBJETO', w: 'MESA' }, { cat: 'OBJETO', w: 'SOFA' }, { cat: 'OBJETO', w: 'CAMA' },
+            { cat: 'OBJETO', w: 'LAPIZ' }, { cat: 'OBJETO', w: 'LIBRO' }, { cat: 'OBJETO', w: 'RELOJ' },
+            { cat: 'OBJETO', w: 'ESPEJO' }, { cat: 'OBJETO', w: 'CUADRO' }, { cat: 'OBJETO', w: 'TELEFONO' },
+            { cat: 'OBJETO', w: 'COMPUTADOR' }, { cat: 'OBJETO', w: 'BICICLETA' }
+        ];
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
+            authDomain: "casino-familia.firebaseapp.com",
+            databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+            projectId: "casino-familia",
+            storageBucket: "casino-familia.firebasestorage.app",
+            messagingSenderId: "390973825874",
+            appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // --- VARIABLES GLOBALES ---
+        let usuario = null;
+        let saldo = 0;
+        let palabraActual = {};
+        let letrasUsuario = [];
+        let letrasMezcladas = []; 
+        let timerInterval = null;
+        let timeLeft = 5;
+        const COSTO = 100;
+
+        // --- SESIÓN ---
+        auth.onAuthStateChanged(u => {
+            if(u) {
+                usuario = u;
+                db.ref('usuarios/' + u.uid).on('value', snap => {
+                    const val = snap.val();
+                    if(val) {
+                        saldo = val.saldo || 0;
+                        document.getElementById('display-saldo').innerText = "$ " + saldo.toLocaleString();
+                    }
+                });
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        // --- LÓGICA DE JUEGO ---
+
+        function iniciarJuego() {
+            if(saldo < COSTO) return alert("Saldo insuficiente");
+
+            // Descontar saldo
+            db.ref('usuarios/'+usuario.uid).update({ saldo: saldo - COSTO });
+
+            // Preparar UI
+            document.getElementById('pantalla-inicio').style.display = 'none';
+            document.getElementById('pantalla-juego').style.display = 'flex';
+            
+            // Elegir palabra random
+            palabraActual = DB_PALABRAS[Math.floor(Math.random() * DB_PALABRAS.length)];
+            
+            // Configurar textos
+            document.getElementById('txt-categoria').innerText = palabraActual.cat;
+            document.getElementById('txt-pista').innerText = "Empieza con " + palabraActual.w[0];
+            
+            // LÓGICA DE TIEMPO AJUSTADA
+            // Si es <= 5 letras: 5 segundos.
+            // Si es > 5 letras: La misma cantidad de segundos que letras (ej: 8 letras = 8 segundos).
+            let len = palabraActual.w.length;
+            timeLeft = (len <= 5) ? 5 : len; 
+
+            actualizarTimerUI();
+            
+            // Preparar letras mezcladas
+            letrasUsuario = [];
+            prepararLetras(palabraActual.w);
+            renderSlots();
+            renderPool();
+
+            // Iniciar Timer
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                actualizarTimerUI();
+                if(timeLeft <= 0) {
+                    finalizarJuego(false);
+                }
+            }, 1000);
+        }
+
+        function prepararLetras(palabra) {
+            let arr = palabra.split('').map((l, i) => ({ char: l, id: i, used: false }));
+            // Mezclar
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            letrasMezcladas = arr;
+        }
+
+        function actualizarTimerUI() {
+            const el = document.getElementById('timer');
+            el.innerText = timeLeft;
+            if(timeLeft <= 3) el.classList.add('timer-danger');
+            else el.classList.remove('timer-danger');
+        }
+
+        function renderSlots() {
+            const container = document.getElementById('slots-container');
+            container.innerHTML = "";
+            // Ajustar tamaño si la palabra es muy larga para que quepa en el celular
+            if(palabraActual.w.length > 7) {
+                container.style.zoom = "0.8"; // Truco rápido para reducir escala
+            } else {
+                container.style.zoom = "1";
+            }
+
+            for(let i=0; i < palabraActual.w.length; i++) {
+                const div = document.createElement('div');
+                div.className = 'slot';
+                if(letrasUsuario[i]) {
+                    div.innerText = letrasUsuario[i].char;
+                    div.classList.add('filled');
+                } else {
+                    div.innerText = "";
+                }
+                container.appendChild(div);
+            }
+        }
+
+        function renderPool() {
+            const container = document.getElementById('pool-container');
+            container.innerHTML = "";
+            letrasMezcladas.forEach(item => {
+                const btn = document.createElement('div');
+                btn.className = 'letter-btn ' + (item.used ? 'used' : '');
+                btn.innerText = item.char;
+                // Prevenir doble click rápido
+                btn.onclick = () => { if(!item.used) usarLetra(item); };
+                container.appendChild(btn);
+            });
+        }
+
+        function usarLetra(item) {
+            if(letrasUsuario.length < palabraActual.w.length) {
+                item.used = true;
+                letrasUsuario.push(item);
+                
+                renderSlots();
+                renderPool();
+
+                if(letrasUsuario.length === palabraActual.w.length) {
+                    verificarVictoria();
+                }
+            }
+        }
+
+        function borrarTodo() {
+            letrasUsuario = [];
+            letrasMezcladas.forEach(l => l.used = false);
+            renderSlots();
+            renderPool();
+        }
+
+        function verificarVictoria() {
+            const palabraFormada = letrasUsuario.map(l => l.char).join('');
+            if(palabraFormada === palabraActual.w) {
+                finalizarJuego(true);
+            } else {
+                if(navigator.vibrate) navigator.vibrate(200);
+            }
+        }
+
+        function finalizarJuego(ganaste) {
+            clearInterval(timerInterval);
+            const overlay = document.getElementById('overlay-result');
+            const titulo = document.getElementById('res-titulo');
+            const msj = document.getElementById('res-mensaje');
+            const ganancia = document.getElementById('res-ganancia');
+
+            overlay.style.display = 'flex';
+            msj.innerText = "La palabra era: " + palabraActual.w;
+
+            if(ganaste) {
+                titulo.innerText = "¡CORRECTO!";
+                titulo.style.color = "var(--verde)";
+                
+                // Premios según longitud
+                let longitud = palabraActual.w.length;
+                let mult = 2; // Default 3-4 letras
+                if(longitud >= 7) mult = 4;
+                else if(longitud >= 5) mult = 3;
+
+                let premio = COSTO * mult;
+                ganancia.innerText = "+ $" + premio;
+                
+                db.ref('usuarios/'+usuario.uid).update({ saldo: saldo + premio });
+                if(navigator.vibrate) navigator.vibrate([100,50,100]);
+            } else {
+                titulo.innerText = "¡TIEMPO!";
+                titulo.style.color = "var(--rojo)";
+                ganancia.innerText = "- $100";
+                ganancia.style.color = "var(--rojo)";
+                if(navigator.vibrate) navigator.vibrate(500);
+            }
+        }
+
+        function cerrarOverlay() {
+            document.getElementById('overlay-result').style.display = 'none';
+            document.getElementById('pantalla-juego').style.display = 'none';
+            document.getElementById('pantalla-inicio').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
