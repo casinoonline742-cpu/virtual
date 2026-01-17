@@ -324,7 +324,7 @@
         const pass = document.getElementById('password').value;
         if(!email || !pass) return;
         auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
-            db.ref('usuarios/' + cred.user.uid).set({ email: email, saldo: 0 });
+            db.ref('usuarios/' + cred.user.uid).set({ email: email, saldo: 2000 });
             document.getElementById('modal-bienvenida').style.display = 'flex';
         }).catch(e => document.getElementById('mensajeError').innerText = e.message);
     }
