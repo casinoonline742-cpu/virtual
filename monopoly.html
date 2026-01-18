@@ -37,93 +37,106 @@
         .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
         .avatar-dot { width: 15px; height: 15px; border-radius: 50%; }
 
-        /* TABLERO CON IMAGEN DE FONDO */
+        /* --- TABLERO RESPONSIVO --- */
         .board-container {
-            flex: 1; width: 98%; max-width: 500px; 
-            /* Se ajusta para mantener proporción cuadrada en cualquier pantalla */
-            aspect-ratio: 1/1; 
+            flex: 1; 
+            width: 100%; 
+            max-width: 600px; /* Un poco más ancho para aprovechar el formato rectangular */
+            /* Proporción 5:4 para ajustarse mejor a tu imagen rectangular */
+            aspect-ratio: 5/4; 
             margin: 5px auto;
+            
             display: grid; 
             grid-template-columns: repeat(6, 1fr); 
             grid-template-rows: repeat(6, 1fr);
+            
+            /* CERO GAP: Esto soluciona el desalineamiento */
+            gap: 0; 
+            
             position: relative;
             background-image: url('tablero monopoli.jpg');
             background-size: 100% 100%;
-            border-radius: 10px;
+            border-radius: 8px;
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
 
-        /* --- CAJA CENTRAL PEQUEÑA (MODIFICADO) --- */
+        /* CENTRO DEL TABLERO (CAJA PEQUEÑA) */
         .board-center {
-            /* Ocupa solo el centro exacto (2x2) en lugar de todo el medio */
             grid-column: 3 / span 2; 
             grid-row: 3 / span 2;
+            
+            /* Centrado absoluto dentro de las 4 casillas centrales */
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; 
+            text-align: center;
             
-            /* Fondo más sutil y redondeado */
-            background: rgba(0, 0, 0, 0.75); 
-            border-radius: 50%; /* Circular para que parezca un hub */
-            border: 2px solid rgba(255, 215, 0, 0.3);
-            backdrop-filter: blur(4px);
+            /* Caja visualmente más pequeña */
+            width: 140px; 
+            height: 140px;
+            margin: auto; /* Auto margin para centrar en el grid area */
             
-            /* Asegura que no se salga */
-            width: 90%; height: 90%;
-            margin: auto;
-            z-index: 50; /* Por encima del fondo pero bajo fichas si pasan */
+            background: rgba(0, 0, 0, 0.7); 
+            border-radius: 50%; /* Redonda para no chocar con las esquinas */
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            backdrop-filter: blur(3px);
+            z-index: 50;
         }
 
-        /* CASILLAS INVISIBLES (SOLO LÓGICA) */
-        .space { position: relative; width: 100%; height: 100%; }
+        /* CASILLAS INVISIBLES */
+        .space { 
+            position: relative; 
+            width: 100%; height: 100%; 
+            /* background: rgba(255,0,0,0.1); Descomenta para ver la rejilla si necesitas depurar */
+        }
 
-        /* MARCADOR DE DUEÑO (Borde de color) */
+        /* MARCADOR DE DUEÑO */
         .owned-mark { 
-            position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px;
+            position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
             border: 0px solid transparent; 
             box-sizing: border-box; 
             pointer-events: none; 
-            border-radius: 5px;
+            border-radius: 6px;
             transition: all 0.3s;
         }
 
-        /* FICHAS RESPONSIVAS */
+        /* FICHAS */
         .token {
-            width: 25%; height: 25%; /* Relativo a la casilla */
+            /* Tamaño relativo a la casilla para ser responsivo */
+            width: 28%; height: 28%; 
             border-radius: 50%; border: 2px solid white;
             position: absolute; z-index: 20; 
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.9);
+            transition: all 0.4s ease-out; /* Movimiento suave */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.9);
         }
 
-        /* CONTROLES CENTRALES */
+        /* CONTROLES */
         #turn-msg {
-            color: var(--gold); font-weight: bold; margin-bottom: 5px; 
-            font-size: 0.8em; text-transform: uppercase;
+            color: var(--gold); font-weight: bold; margin-bottom: 2px; 
+            font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px;
         }
 
         #dice-btn { 
-            width: 50px; height: 50px; /* Más compacto */
+            width: 50px; height: 50px; 
             background: white; color: black;
-            border-radius: 10px;
-            font-size: 2em; font-weight: bold;
+            border-radius: 12px;
+            font-size: 1.8em; font-weight: bold;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; 
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             transition: transform 0.1s;
         }
         #dice-btn:active { transform: scale(0.9); }
         .shaking { animation: shake 0.5s infinite; background: #ffffcc !important; }
         
-        /* BOTONES DE ACCIÓN FLOTANTES (FUERA DE LA CAJA PEQUEÑA SI ES NECESARIO) */
+        /* BOTONES FLOTANTES */
         .action-area { 
             position: absolute; 
-            bottom: -50px; /* Flotan debajo del dado */
+            bottom: -45px; /* Fuera de la bola central */
             width: 200px; left: 50%; transform: translateX(-50%);
             display: flex; justify-content: center; gap: 5px; 
-            flex-wrap: nowrap;
+            z-index: 100;
         }
-        .btn-buy { background: var(--green); color: black; padding: 6px 12px; border-radius: 20px; border: none; font-weight: bold; font-size: 0.8em; cursor: pointer; box-shadow: 0 0 10px black; white-space: nowrap;}
-        .btn-pay { background: var(--red); color: white; padding: 6px 12px; border-radius: 20px; border: none; font-weight: bold; font-size: 0.8em; box-shadow: 0 0 10px black; white-space: nowrap;}
+        .btn-buy { background: var(--green); color: black; padding: 6px 12px; border-radius: 20px; border: 2px solid white; font-weight: bold; font-size: 0.8em; cursor: pointer; box-shadow: 0 4px 8px black; }
+        .btn-pay { background: var(--red); color: white; padding: 6px 12px; border-radius: 20px; border: 2px solid white; font-weight: bold; font-size: 0.8em; box-shadow: 0 4px 8px black; }
 
         /* LISTA JUGADORES */
         .players-bar {
@@ -174,9 +187,7 @@
         <div class="board-container" id="board">
             <div class="board-center">
                 <div id="turn-msg">...</div>
-                
                 <div id="dice-btn" onclick="lanzarDadoHumano()">🎲</div>
-                
                 <div id="action-zone" class="action-area"></div>
             </div>
         </div>
@@ -196,7 +207,6 @@
         try { firebase.initializeApp(firebaseConfig); } catch(e) {}
         const db = firebase.database();
 
-        // DATOS DEL TABLERO
         const BOARD_DATA = [
             { name: "SALIDA", type: 'corner' },
             { name: "AV. 1", price: 60, rent: 10, type: 'prop' },
@@ -220,7 +230,7 @@
             { name: "TORRE", price: 400, rent: 70, type: 'prop' }
         ];
 
-        // POSICIONES EN GRID 6x6
+        // CONFIGURACIÓN DE GRID (Indices de CSS Grid)
         const GRID_POS = [
             {r:6, c:6}, {r:6, c:5}, {r:6, c:4}, {r:6, c:3}, {r:6, c:2}, {r:6, c:1},
             {r:5, c:1}, {r:4, c:1}, {r:3, c:1}, {r:2, c:1},
@@ -248,19 +258,15 @@
             });
         }
 
-        // --- SALA ---
+        // --- FUNCIONES SALA ---
         function crearSala() {
             myName = document.getElementById('input-nombre').value.trim();
             if(!myName) return alert("Nombre obligatorio");
             roomId = Math.floor(1000 + Math.random() * 9000).toString();
             myId = 'host'; isHost = true;
-            
             let props = {}; for(let i=0; i<20; i++) props[i] = "";
-
             db.ref('monopoly/' + roomId).set({
-                status: 'waiting',
-                currentTurn: 0,
-                props: props,
+                status: 'waiting', currentTurn: 0, props: props,
                 players: { [myId]: { name: myName, money: 1500, pos: 0, color: PLAYER_COLORS[0], isBot: false } }
             });
             mostrarLobby();
@@ -271,13 +277,10 @@
             roomId = document.getElementById('input-codigo').value.trim();
             if(!myName || !roomId) return alert("Faltan datos");
             myId = 'p_' + Date.now();
-
             db.ref('monopoly/' + roomId).once('value').then(snap => {
                 if(!snap.exists()) return alert("Sala no existe");
-                if(snap.val().status !== 'waiting') return alert("Juego ya iniciado");
                 const count = Object.keys(snap.val().players).length;
                 if(count >= 4) return alert("Sala llena");
-
                 db.ref('monopoly/' + roomId + '/players/' + myId).set({
                     name: myName, money: 1500, pos: 0, color: PLAYER_COLORS[count], isBot: false
                 });
@@ -300,7 +303,6 @@
             document.getElementById('view-login').classList.remove('active');
             document.getElementById('view-waiting').classList.add('active');
             document.getElementById('lbl-room-id').innerText = roomId;
-            
             if(isHost) document.getElementById('host-controls').style.display = 'block';
             else document.getElementById('guest-msg').style.display = 'block';
 
@@ -343,8 +345,7 @@
                         <div class="p-card ${idx === data.currentTurn ? 'active' : ''}">
                             <span style="color:${p.color}; font-weight:bold;">${p.name} ${p.isBot?'🤖':''}</span>
                             <span class="money">$${p.money}</span>
-                        </div>
-                    `;
+                        </div>`;
                 });
 
                 turnIndex = data.currentTurn;
@@ -370,11 +371,10 @@
                     t.className = 'token';
                     t.style.backgroundColor = p.color;
                     
-                    // Posicionamiento en cuadrícula 2x2 dentro de la celda
-                    // 0: TopLeft, 1: TopRight, 2: BottomLeft, 3: BottomRight
-                    const slot = i % 4;
-                    const top = (slot >= 2) ? '55%' : '20%';
-                    const left = (slot % 2 !== 0) ? '55%' : '20%';
+                    // LÓGICA DE POSICIONAMIENTO EN CUADRÍCULA 2x2 DENTRO DE LA CASILLA
+                    const slot = i % 4; // 0, 1, 2, 3
+                    const top = (slot < 2) ? '15%' : '55%';
+                    const left = (slot % 2 === 0) ? '15%' : '55%';
                     
                     t.style.top = top;
                     t.style.left = left;
@@ -411,20 +411,18 @@
             if(!curr) return;
 
             if(curr.id === myId) {
-                turnMsg.innerText = "¡TU TURNO!";
+                turnMsg.innerText = "TU TURNO";
                 diceBtn.style.opacity = 1; diceBtn.style.pointerEvents = 'all';
             } else {
-                turnMsg.innerText = `Turno de: ${curr.name}`;
+                turnMsg.innerText = `TURNO: ${curr.name}`;
                 diceBtn.style.opacity = 0.3; diceBtn.style.pointerEvents = 'none';
             }
         }
 
-        // --- ACCIONES ---
         function lanzarDadoHumano() {
             const diceBtn = document.getElementById('dice-btn');
             diceBtn.classList.add('shaking');
             diceBtn.style.pointerEvents = 'none';
-            
             setTimeout(() => {
                 diceBtn.classList.remove('shaking');
                 const val = Math.floor(Math.random() * 6) + 1;
@@ -437,12 +435,10 @@
         function procesarTurnoBot(botId) {
             if(botProcessing) return;
             botProcessing = true;
-
             setTimeout(() => {
                 const btn = document.getElementById('dice-btn');
                 btn.innerText = "🤖";
                 btn.classList.add('shaking');
-                
                 setTimeout(() => {
                     btn.classList.remove('shaking');
                     const val = Math.floor(Math.random() * 6) + 1;
@@ -461,25 +457,21 @@
             let intervalo = setInterval(() => {
                 contador++;
                 let nuevaPos = currentPos + contador;
-                
-                // Si pasa por Salida (20)
                 if(nuevaPos >= 20) {
-                    nuevaPos = nuevaPos % 20; // reset
-                    // Solo el dueño (o host para bot) suma dinero
+                    nuevaPos = nuevaPos % 20;
                     if(pid === myId || (isHost && players[pIdx].isBot)) {
                         let p = players.find(x => x.id === pid);
                         db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money + 200);
                     }
                 }
-
                 db.ref('monopoly/' + roomId + '/players/' + pid).update({ pos: nuevaPos });
-                if(navigator.vibrate) navigator.vibrate(30);
+                if(navigator.vibrate) navigator.vibrate(20);
 
                 if(contador >= pasos) {
                     clearInterval(intervalo);
                     setTimeout(() => evaluarCasilla(nuevaPos, pid), 500);
                 }
-            }, 400); // Velocidad del paso
+            }, 300);
         }
 
         function evaluarCasilla(pos, pid) {
@@ -489,48 +481,37 @@
             const player = players.find(p => p.id === pid);
             const currentMoney = player.money;
 
-            // CÁRCEL
-            if(pos === 15) {
-                if(isMe) alert("¡TE ATRAPÓ BOWSER!");
+            if(pos === 15) { // CÁRCEL
+                if(isMe) alert("¡A LA CÁRCEL!");
                 db.ref('monopoly/' + roomId + '/players/' + pid).update({ pos: 5 });
                 pasarTurno();
                 return;
             }
 
-            // IMPUESTO
             if(space.type === 'tax') {
                 if(isMe) actionZone.innerHTML = `<button class="btn-pay" onclick="pagarBanco(${space.rent}, '${pid}')">IMPUESTO $${space.rent}</button>`;
                 else if(player.isBot && isHost) setTimeout(() => pagarBanco(space.rent, pid), 1000);
                 return;
             }
 
-            // PROPIEDAD
             if(space.type === 'prop') {
                 const ownerId = properties[pos];
-                
-                // Sin dueño -> Comprar
                 if(!ownerId || ownerId === "") {
                     if(currentMoney >= space.price) {
                         if(isMe) {
                             actionZone.innerHTML = `
                                 <button class="btn-buy" onclick="comprarPropiedad(${pos}, ${space.price}, '${pid}')">COMPRAR $${space.price}</button>
-                                <button class="btn-sec" onclick="pasarTurno()" style="margin-left:5px; padding:6px 12px; font-size:0.8em; border-radius:20px;">PASAR</button>
+                                <button class="btn-sec" onclick="pasarTurno()" style="border-radius:20px; padding:6px 12px; font-weight:bold;">PASAR</button>
                             `;
-                        } else if (player.isBot && isHost) {
-                            setTimeout(() => comprarPropiedad(pos, space.price, pid), 1000);
-                        }
+                        } else if (player.isBot && isHost) setTimeout(() => comprarPropiedad(pos, space.price, pid), 1000);
                     } else {
-                        if(isMe) actionZone.innerHTML = `<span style="color:red; font-size:0.8em;">No alcanza</span> <button class="btn-sec" onclick="pasarTurno()" style="border-radius:20px;">FIN</button>`;
+                        if(isMe) actionZone.innerHTML = `<span style="color:red; font-weight:bold;">Sin $</span> <button class="btn-sec" onclick="pasarTurno()" style="border-radius:20px;">FIN</button>`;
                         else if(player.isBot && isHost) setTimeout(pasarTurno, 1000);
                     }
-                } 
-                // Con dueño ajeno -> Pagar renta
-                else if(ownerId !== pid) {
+                } else if(ownerId !== pid) {
                     if(isMe) actionZone.innerHTML = `<button class="btn-pay" onclick="pagarRenta('${ownerId}', ${space.rent}, '${pid}')">PAGAR $${space.rent}</button>`;
                     else if(player.isBot && isHost) setTimeout(() => pagarRenta(ownerId, space.rent, pid), 1000);
-                } 
-                // Mía
-                else {
+                } else {
                     pasarTurno();
                 }
             } else {
