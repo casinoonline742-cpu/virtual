@@ -73,6 +73,16 @@
         .game-item svg { width: 50px; height: 50px; margin-bottom: 10px; fill: var(--gold); }
         .game-item b { font-size: 12px; letter-spacing: 1px; }
 
+        /* --- SECCIÓN FAMILIA --- */
+        .family-separator {
+            width: 100%; text-align: center; margin: 30px 0 15px 0;
+        }
+        .btn-family-header {
+            background: #222; color: var(--gold); border: 2px solid var(--gold);
+            padding: 10px 30px; border-radius: 30px; font-weight: bold;
+            font-size: 0.9em; letter-spacing: 1px;
+        }
+
         /* --- PANEL ADMIN --- */
         .admin-tag { background: black; color: var(--gold); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; position: absolute; top: 20px; right: 20px; }
         .btn-danger { background: transparent; color: #ff5252; border: 1px solid #ff5252; width: 100%; padding: 12px; border-radius: 8px; margin-top: 20px; cursor: pointer; }
@@ -148,17 +158,24 @@
                 <b>RULETA</b> 
             </div>
             <div class="game-item" onclick="irAlJuego('blackjack.html')"> <span class="emoji">🃏</span><b>BLACKJACK</b> </div>
-	    <div class="game-item" onclick="irAlJuego('poker.html')"> <span class="emoji">♠️</span><b>POKER</b> </div>
+            <div class="game-item" onclick="irAlJuego('poker.html')"> <span class="emoji">♠️</span><b>POKER</b> </div>
             <div class="game-item" onclick="irAlJuego('tragamonedas.html')"> 
                 <svg viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm0 2v14h14V5H5zm16 4h1v6h-1V9z" fill="#FFD700"/><rect x="7" y="8" width="10" height="8" rx="1" fill="#333"/><text x="8" y="14" fill="#00e676" font-size="6" font-weight="bold" font-family="monospace">777</text><circle cx="12" cy="12" r="1" fill="#FFD700"/></svg>
                 <b>TRAGAMONEDAS</b> 
             </div>
             <div class="game-item" onclick="irAlJuego('raspa.html')"> <span class="emoji">🍀</span><b>RASPA Y GANA</b> </div>
             <div class="game-item" onclick="irAlJuego('caballos.html')"> <span class="emoji">🏇</span><b>CABALLOS</b> </div>
-            <div class="game-item" onclick="irAlJuego('palabras.html')"> 
-    <span class="emoji">🧠</span><b>PALABRAS</b> 
-</div>
-            
+            <div class="game-item" onclick="irAlJuego('palabras.html')"> <span class="emoji">🧠</span><b>PALABRAS</b> </div>
+        </div>
+
+        <div class="family-separator">
+            <button class="btn-family-header">👨‍👩‍👧‍👦 JUEGOS EN FAMILIA</button>
+        </div>
+
+        <div class="menu-grid" style="margin-top: 10px;">
+            <div class="game-item" onclick="irAlJuego('actuacion.html')"> 
+                <span class="emoji">🎬</span><b>ACTUACIÓN</b> 
+            </div>
         </div>
 
         <button class="btn-danger" onclick="cerrarSesion()">CERRAR SESIÓN</button>
