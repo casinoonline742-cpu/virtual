@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cine Mudo - Full Screen</title>
+    <title>Cine Mudo - Time Attack</title>
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -156,7 +156,32 @@
             animation: floatUp 1s forwards; 
         }
 
-        .action-hint { color: #aaa; font-size: 1.2em; margin-top: 20px; animation: blink 1s infinite; }
+        /* BOTÓN DE ÉXITO */
+        .btn-success-action {
+            background-color: var(--green);
+            color: black;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.5em;
+            font-weight: bold;
+            border-radius: 50px;
+            margin-top: 20px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.4);
+            animation: pulse-green 2s infinite;
+            width: 80%;
+            font-family: 'Courier Prime', monospace;
+            text-transform: uppercase;
+        }
+        .btn-success-action:active { transform: scale(0.95); background-color: #00b35c; }
+
+        .btn-change {
+            background: #333; border: 1px solid var(--gold); color: var(--gold);
+            padding: 8px 20px; border-radius: 30px; font-weight: bold; font-family: inherit;
+            cursor: pointer; display: flex; align-items: center; gap: 10px;
+            margin-bottom: 20px; transition: all 0.2s; font-size: 0.9em;
+        }
+        .btn-change:disabled { opacity: 0.2; pointer-events: none; border-color: #444; }
 
         /* OVERLAYS */
         .overlay-screen {
@@ -173,20 +198,20 @@
 
         /* MODAL */
         .modal-choice {
-            background: #222; padding: 30px; border: 2px solid white; border-radius: 10px;
-            display: flex; gap: 20px;
+            background: #222; padding: 20px; border: 2px solid white; border-radius: 10px;
+            display: flex; gap: 10px;
         }
         .btn-opt {
-            padding: 20px; border: 1px solid #555; background: black; color: white;
-            cursor: pointer; font-family: inherit; font-size: 1.2em; border-radius: 5px;
+            padding: 15px; border: 1px solid #555; background: black; color: white;
+            cursor: pointer; font-family: inherit; font-size: 1em; border-radius: 5px;
         }
         .opt-easy { border-bottom: 4px solid var(--green); }
         .opt-med { border-bottom: 4px solid var(--gold); }
         .opt-hard { border-bottom: 4px solid var(--red); }
 
         @keyframes pulse-btn { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(0, 230, 118, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); } }
         @keyframes pulse-border { 0% { border-color: var(--blue); } 50% { border-color: white; } 100% { border-color: var(--blue); } }
-        @keyframes blink { 50% { opacity: 0.5; } }
         @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
     </style>
 </head>
@@ -194,11 +219,15 @@
 
     <div id="rotate-overlay"><div class="rotate-icon">🔄</div><h2>GIRA TU TELÉFONO</h2></div>
 
+    <audio id="tension-sound" loop>
+        <source src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" type="audio/mp3">
+    </audio>
+
     <div id="main-app">
         <div class="top-bar">
             <span>🎬 SET DE GRABACIÓN</span>
-            <div style="display:flex; gap:20px;">
-                <span>PUNTOS: <b id="score-val" style="color:var(--gold)">0</b></span>
+            <div style="display:flex; gap:10px;">
+                <span>PTS: <b id="score-val" style="color:var(--gold)">0</b></span>
                 <a href="index.html" class="btn-salir">SALIR</a>
             </div>
         </div>
@@ -208,7 +237,7 @@
                 <div class="clapper-strip"></div>
                 <div class="clapper-body">
                     <div class="info-header">
-                        <span id="status-text">ORGANIZA Y CAMBIA</span>
+                        <span id="status-text">ORGANIZA TU GUION</span>
                         <span>TOMA: <span id="tomas-restantes">4</span>/4</span>
                     </div>
 
@@ -230,21 +259,21 @@
                     
                     <div id="bonus-indicator"></div>
 
-                    <div id="touch-area" style="width:100%; height:150px; display:flex; justify-content:center; align-items:center; cursor:pointer; background:rgba(255,255,255,0.05); border-radius:10px;" onclick="marcarVictoria()">
-                        <div class="action-hint">TOCA AQUÍ SI LO ADIVINAN</div>
-                    </div>
+                    <button class="btn-success-action" onclick="marcarVictoria()">
+                        ✅ PALABRA ADIVINADA
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="start-screen" class="overlay-screen">
-        <h1 style="font-size:2.5em; margin-bottom:10px; color:var(--gold);">MODO TIME ATTACK</h1>
-        <p style="font-size:1.2em; max-width:600px; text-align:center; margin-bottom:30px; color:#ccc;">
+        <h1 style="font-size:2em; margin-bottom:10px; color:var(--gold);">MODO TIME ATTACK</h1>
+        <p style="font-size:1em; max-width:90%; text-align:center; margin-bottom:20px; color:#ccc;">
             1. Organiza y cambia las cartas <b>AHORA</b>.<br>
             2. Toca la carta azul para definirla.<br>
             3. Al iniciar, <b>el tiempo no para</b>.<br>
-            4. ¡El tiempo que te sobre se suma a la siguiente carta!
+            4. Si adivinas, presiona el botón verde.
         </p>
         <button class="btn-gold" onclick="cerrarIntro()">PREPARAR SET</button>
     </div>
@@ -287,6 +316,7 @@
         let tomasHechas = 0;
         let dragSrcEl = null;
         let gameStarted = false;
+        const tensionAudio = document.getElementById('tension-sound');
 
         // --- INIT ---
         function initGame() {
@@ -467,7 +497,6 @@
         initGame();
         
         function cerrarIntro() { 
-            // ACTIVAR PANTALLA COMPLETA AQUI
             openFullscreen();
             document.getElementById('start-screen').style.display = 'none'; 
         }
@@ -528,9 +557,11 @@
                     clearInterval(int);
                     el.innerText = "¡ACCIÓN!";
                     sonidoPito();
+                    tensionAudio.volume = 0.5;
+                    tensionAudio.play().catch(e => console.log(e));
+
                     setTimeout(() => { 
                         document.getElementById('countdown-screen').style.display = 'none';
-                        // INICIO SECUENCIA CON 0 TIEMPO EXTRA
                         jugarSecuencia(0, 0); 
                     }, 500);
                 }
@@ -538,7 +569,6 @@
         }
 
         function jugarSecuencia(idx, tiempoExtra) {
-            // SI TERMINAMOS
             if(idx >= 4) {
                 finDelJuego();
                 return;
@@ -547,7 +577,6 @@
             activeCardIndex = idx;
             const card = cards[idx];
             
-            // UI Activa
             document.getElementById('active-word').innerText = card.word;
             document.getElementById('bonus-indicator').innerText = ""; 
             
@@ -557,10 +586,9 @@
 
             document.getElementById('active-play').style.display = 'flex';
             
-            // CALCULO TIEMPO: 8s Base + Extra
             let baseTime = 800;
             timeLeft = baseTime + tiempoExtra;
-            maxDuration = timeLeft; // Para escalar la barra al 100% relativo
+            maxDuration = timeLeft; 
 
             const timerBar = document.getElementById('active-timer');
             const timerTxt = document.getElementById('timer-text');
@@ -570,21 +598,18 @@
             timerInterval = setInterval(() => {
                 timeLeft--;
                 
-                // Actualizar barra y texto
                 const pct = (timeLeft / maxDuration) * 100;
                 timerBar.style.width = pct + '%';
                 timerTxt.innerText = (timeLeft / 100).toFixed(1) + "s";
 
                 if(pct < 30) timerBar.style.backgroundColor = 'var(--red)';
 
-                // SI SE ACABA EL TIEMPO
                 if(timeLeft <= 0) {
                     clearInterval(timerInterval);
                     cards[idx].status = 'fail';
                     if(navigator.vibrate) navigator.vibrate(500);
                     tomasHechas++;
                     renderCards();
-                    // Pasar a siguiente SIN tiempo extra (0)
                     jugarSecuencia(idx + 1, 0);
                 }
             }, 10);
@@ -592,22 +617,19 @@
 
         function marcarVictoria() {
             clearInterval(timerInterval);
-            
             const card = cards[activeCardIndex];
             card.status = 'success';
             score += card.points;
-            
             if(navigator.vibrate) navigator.vibrate([50,50]);
-            
             tomasHechas++;
             renderCards();
-
-            // EL TIEMPO QUE SOBRÓ SE PASA A LA SIGUIENTE
             const sobrante = timeLeft;
             jugarSecuencia(activeCardIndex + 1, sobrante);
         }
 
         function finDelJuego() {
+            tensionAudio.pause();
+            tensionAudio.currentTime = 0;
             document.getElementById('active-play').style.display = 'none';
             document.getElementById('end-screen').style.display = 'flex';
             document.getElementById('final-score').innerText = score;
