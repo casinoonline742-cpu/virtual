@@ -13,6 +13,7 @@
         :root {
             --bg-color: #121212;
             --gold: #FFD700;
+            --panel-bg: #1e1e1e;
         }
 
         body {
@@ -20,19 +21,26 @@
             color: white; font-family: 'Segoe UI', sans-serif;
             margin: 0; padding: 0;
             height: 100vh; display: flex; flex-direction: column;
-            overflow: hidden; user-select: none;
+            overflow-x: hidden; user-select: none;
         }
 
         /* HEADER */
         .top-bar {
             background: #000; padding: 10px; display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 2px solid var(--gold); height: 50px; box-sizing: border-box;
+            border-bottom: 2px solid var(--gold); height: 50px; box-sizing: border-box; flex-shrink: 0;
         }
         .btn-salir { color: #aaa; text-decoration: none; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; }
 
         /* VISTAS */
         .view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
         .active { display: flex; }
+
+        /* VISTA JUEGO: PERMITE SCROLL SI EL CELULAR ES MUY PEQUEÑO */
+        #view-game {
+            justify-content: flex-start;
+            overflow-y: auto;
+            padding-bottom: 50px;
+        }
 
         /* LOBBY */
         .lobby-box { background: #222; padding: 30px; border-radius: 15px; text-align: center; width: 80%; max-width: 400px; border: 1px solid #444; }
@@ -44,13 +52,14 @@
         /* TABLERO */
         .game-area { 
             position: relative; 
-            width: 100%; max-width: 500px; 
+            width: 95%; max-width: 500px; 
             aspect-ratio: 1/1; 
             margin: 10px auto; 
             background-image: url('tablero.jpg'); 
             background-size: 100% 100%;
             border-radius: 5px; 
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            flex-shrink: 0; /* No encoger el tablero */
         }
 
         .board-grid {
@@ -62,67 +71,112 @@
 
         .cell { border: none; position: relative; }
 
-        /* ZONA DE INICIO (Fuera del tablero) */
+        /* ZONA DE INICIO */
         .start-zone {
-            position: absolute;
-            bottom: -40px;
-            left: 0;
-            width: 100%;
-            height: 30px;
-            display: flex;
-            justify-content: center;
-            gap: 5px;
+            position: absolute; bottom: -40px; left: 0; width: 100%; height: 30px;
+            display: flex; justify-content: center; gap: 5px;
         }
 
         /* FICHAS */
         .token {
-            width: 6%; height: 6%; 
-            border-radius: 50%;
+            width: 6%; height: 6%; border-radius: 50%;
             position: absolute; z-index: 20;
             transition: all 0.3s ease-out; 
             box-shadow: 1px 1px 4px rgba(0,0,0,0.9);
             border: 2px solid white;
             transform: translate(-50%, -50%);
         }
-        
         .token.waiting {
-            position: relative;
-            transform: none;
-            width: 25px; height: 25px;
+            position: relative; transform: none; width: 25px; height: 25px;
             left: auto !important; top: auto !important;
         }
 
-        /* UI INFERIOR */
-        .bottom-panel { width: 100%; background: #111; padding: 10px; box-sizing: border-box; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-        .turn-info { text-align: center; margin-bottom: 5px; color: var(--gold); font-size: 1.1em; font-weight: bold; }
+        /* --- CUADRO DE JUGADORES (NUEVO DISEÑO) --- */
+        .players-panel-box {
+            width: 90%; max-width: 500px;
+            background: var(--panel-bg);
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px auto 80px auto; /* Margen inferior grande para no tapar con el dado */
+            box-sizing: border-box;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .panel-header {
+            color: #888; font-size: 0.75em; font-weight: bold; letter-spacing: 1px;
+            border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .players-grid {
+            display: flex; flex-wrap: wrap; gap: 10px;
+        }
+
+        .p-card { 
+            background: #2a2a2a; padding: 8px 12px; border-radius: 8px; 
+            display: flex; align-items: center; gap: 8px; 
+            font-size: 0.9em; min-width: 100px;
+            color: #ccc; border: 1px solid transparent;
+            transition: all 0.3s;
+        }
         
-        /* DADO */
-        .dice-area { position: fixed; bottom: 100px; right: 20px; z-index: 100; }
+        .p-card.active-turn { 
+            border: 1px solid var(--gold); 
+            background: #333; color: white;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
+        }
+        
+        .avatar-dot { 
+            width: 12px; height: 12px; border-radius: 50%; 
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        /* INFORMACIÓN DE TURNO (Encima del panel) */
+        .turn-display {
+            text-align: center; color: var(--gold); 
+            font-size: 1.2em; font-weight: bold; margin-top: 5px;
+            text-shadow: 0 2px 2px black;
+        }
+
+        /* DADO FLOTANTE */
+        .dice-area { position: fixed; bottom: 30px; right: 20px; z-index: 100; }
         .dice-box { 
-            width: 65px; height: 65px; background: white; color: black; 
-            font-size: 2.2em; font-weight: bold; display: flex; align-items: center; justify-content: center; 
-            border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 0 0 3px var(--gold);
+            width: 70px; height: 70px; background: white; color: black; 
+            font-size: 2.5em; font-weight: bold; display: flex; align-items: center; justify-content: center; 
+            border-radius: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.6), 0 0 0 3px var(--gold);
             cursor: pointer; transition: transform 0.1s;
         }
         .dice-box:active { transform: scale(0.9); }
         .dice-anim { animation: shake 0.5s infinite; background: #ffffcc; }
 
-        /* JUGADORES */
-        .players-bar { display: flex; gap: 10px; overflow-x: auto; padding: 10px; width: 100%; justify-content: center; background: #0a0a0a; border-top: 1px solid #333; }
-        .p-card { background: #222; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; font-size: 0.8em; min-width: max-content; opacity: 0.5; color: #fff; }
-        .p-card.active-turn { opacity: 1; border: 1px solid var(--gold); background: #444; transform: scale(1.05); }
-        .avatar-dot { width: 12px; height: 12px; border-radius: 50%; }
-
+        /* LISTA ESPERA LOBBY */
         .waiting-list { width: 90%; background: #111; padding: 10px; border-radius: 10px; margin: 20px 0; }
         .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
 
+        /* MODAL VICTORIA */
+        #win-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 2000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+        }
+        .win-box {
+            background: #222; padding: 40px; border-radius: 20px; border: 3px solid var(--gold);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); width: 80%; max-width: 350px;
+        }
+        .trophy { font-size: 5em; margin-bottom: 20px; animation: bounce 2s infinite; }
+        
         @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-15deg); } 100% { transform: rotate(0deg); } }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-20px);} 60% {transform: translateY(-10px);} }
     </style>
 </head>
 <body>
 
+    <audio id="whistle-sound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+
     <div class="top-bar">
-        <span>🐍 SERPIENTES Y ESCALERAS</span>
+        <span>🐍 SERPIENTES</span>
         <a href="index.html" class="btn-salir">Salir</a>
     </div>
 
@@ -149,16 +203,35 @@
         <div id="guest-msg" style="display:none; color:#aaa; font-style: italic;">Esperando al anfitrión...</div>
     </div>
 
-    <div id="view-game" class="view" style="justify-content: flex-start;">
+    <div id="view-game" class="view">
+        
         <div class="game-area" id="board-container">
             <div id="board-grid" class="board-grid"></div>
             <div id="start-zone" class="start-zone"></div>
         </div>
 
-        <div class="bottom-panel">
-            <div id="turn-text" class="turn-info">...</div>
-            <div class="dice-area"><div id="dice-btn" class="dice-box" onclick="lanzarDadoHumano()">🎲</div></div>
-            <div id="ingame-players" class="players-bar"></div>
+        <div id="turn-text" class="turn-display">...</div>
+
+        <div class="players-panel-box">
+            <div class="panel-header">
+                <span>JUGADORES EN SALA</span>
+                <span style="font-size:1.2em">👥</span>
+            </div>
+            <div id="ingame-players" class="players-grid"></div>
+        </div>
+
+        <div class="dice-area">
+            <div id="dice-btn" class="dice-box" onclick="lanzarDadoHumano()">🎲</div>
+        </div>
+
+    </div>
+
+    <div id="win-modal">
+        <div class="win-box">
+            <div class="trophy">🏆</div>
+            <h2 style="color:var(--gold); margin:0;">¡GANADOR!</h2>
+            <h3 id="winner-name" style="color:white; margin:10px 0 30px 0; font-size:1.5em;">...</h3>
+            <button class="btn-main" onclick="window.location.href='index.html'">ACEPTAR</button>
         </div>
     </div>
 
@@ -179,30 +252,13 @@
         let players = [], turnIndex = 0;
         const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
 
-        // --- MAPA EXACTO ACTUALIZADO ---
+        // --- MAPA EXACTO ---
         const MAPA_IMAGEN = {
-            // ESCALERAS (Origen: Destino)
-            1: 38,
-            4: 14,
-            9: 31,
-            21: 42,
-            28: 84,
-            51: 67,
-            72: 91,
-            80: 99,
-
-            // SERPIENTES (Origen: Destino)
-            17: 7,
-            54: 34,
-            62: 19,
-            64: 60,
-            87: 36,
-            93: 73,
-            95: 75,
-            98: 79
+            1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 51: 67, 72: 91, 80: 99,
+            17: 7, 54: 34, 62: 19, 64: 60, 87: 36, 93: 73, 95: 75, 98: 79
         };
 
-        // --- FUNCIONES SALA ---
+        // --- SALA ---
         function crearSala() {
             myName = document.getElementById('input-nombre').value.trim();
             if(!myName) return alert("Nombre requerido");
@@ -212,7 +268,6 @@
             db.ref('serpientes/' + roomId).set({
                 status: 'waiting',
                 currentTurn: 0,
-                // INICIO EN 0 (Fuera del tablero)
                 players: { [myId]: { name: myName, pos: 0, color: COLORS[0], isBot: false } }
             });
             mostrarLobby();
@@ -275,14 +330,13 @@
             db.ref('serpientes/' + roomId).update({ status: 'playing' });
         }
 
-        // --- LÓGICA DE JUEGO ---
+        // --- JUEGO ---
         function iniciarJuegoUI() {
             document.getElementById('view-waiting').classList.remove('active');
             document.getElementById('view-game').classList.add('active');
             
             const grid = document.getElementById('board-grid');
             grid.innerHTML = "";
-            // Generar grilla visual (invisible pero estructural)
             for(let row=9; row>=0; row--) {
                 const isEven = (row % 2 === 0);
                 for(let col=0; col<10; col++) {
@@ -333,7 +387,6 @@
             let targetPos = currentPos + pasos;
 
             if(targetPos > 100) {
-                // Si te pasas, pierdes turno (no te mueves)
                 setTimeout(() => finalizarTurno(), 1000);
                 return;
             }
@@ -356,7 +409,6 @@
         function verificarCasilla(pid, pos) {
             if(MAPA_IMAGEN[pos]) {
                 let destino = MAPA_IMAGEN[pos];
-                // Efecto de movimiento
                 db.ref('serpientes/' + roomId + '/players/' + pid).update({ pos: destino });
                 if(navigator.vibrate) navigator.vibrate([100,50,100]);
                 setTimeout(() => verificarVictoria(pid, destino), 800);
@@ -368,10 +420,16 @@
         function verificarVictoria(pid, pos) {
             if(pos === 100) {
                 let p = players.find(x => x.id === pid);
-                alert("🎉 ¡" + p.name + " GANÓ! 🎉");
+                mostrarPantallaVictoria(p.name);
             } else {
                 finalizarTurno();
             }
+        }
+
+        function mostrarPantallaVictoria(nombreGanador) {
+            document.getElementById('winner-name').innerText = nombreGanador;
+            document.getElementById('win-modal').style.display = 'flex';
+            if(navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
         }
 
         function finalizarTurno() {
@@ -401,9 +459,7 @@
         // --- RENDERIZADO ---
         function actualizarFichasUI() {
             document.querySelectorAll('.token').forEach(e => e.remove());
-
             players.forEach((p, i) => {
-                // Si pos == 0, se pinta en la zona de espera
                 if (p.pos === 0) {
                     const startZone = document.getElementById('start-zone');
                     const t = document.createElement('div');
@@ -412,20 +468,14 @@
                     startZone.appendChild(t);
                     return;
                 }
-
-                // Si pos > 0, se busca la celda
                 const cell = document.getElementById('cell-'+p.pos);
                 if(cell) {
                     const t = document.createElement('div');
                     t.className = 'token';
                     t.style.backgroundColor = p.color;
-                    
-                    const offX = (i % 3) * 6 - 6; 
-                    const offY = Math.floor(i / 3) * 6 - 3;
-                    
+                    const offX = (i % 3) * 6 - 6; const offY = Math.floor(i / 3) * 6 - 3;
                     t.style.left = (cell.offsetLeft + cell.offsetWidth/2 + offX) + 'px';
                     t.style.top = (cell.offsetTop + cell.offsetHeight/2 + offY) + 'px';
-                    
                     document.getElementById('board-container').appendChild(t);
                 }
             });
@@ -436,17 +486,27 @@
             const curr = players[turnIndex];
             const btn = document.getElementById('dice-btn');
             const txt = document.getElementById('turn-text');
-            const bar = document.getElementById('ingame-players');
+            const panel = document.getElementById('ingame-players');
 
-            bar.innerHTML = "";
+            panel.innerHTML = "";
             players.forEach((p, i) => {
-                bar.innerHTML += `<div class="p-card ${i===turnIndex?'active-turn':''}"><div class="avatar-dot" style="background:${p.color}"></div>${p.name}</div>`;
+                panel.innerHTML += `
+                    <div class="p-card ${i===turnIndex?'active-turn':''}">
+                        <div class="avatar-dot" style="background:${p.color}"></div>
+                        <span>${p.name}</span>
+                    </div>`;
             });
 
             if(curr.id === myId) {
                 txt.innerText = "¡TU TURNO!";
                 txt.style.color = "#00e676";
                 btn.style.opacity = 1; btn.style.pointerEvents = 'all';
+                
+                // SONIDO
+                const audio = document.getElementById('whistle-sound');
+                if(audio) audio.play().catch(e => console.log(e));
+                if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
             } else {
                 txt.innerText = `Turno de: ${curr.name}`;
                 txt.style.color = "#aaa";
