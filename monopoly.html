@@ -11,146 +11,96 @@
 
     <style>
         :root { --bg: #121212; --panel: #1e1e1e; --gold: #FFD700; --green: #00e676; --red: #ff5252; }
+        
         body { 
             background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; 
-            margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; 
-            overflow: hidden; user-select: none; 
+            margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column;
+            overflow-x: hidden; overflow-y: auto; 
         }
 
-        /* HEADER */
-        .top-bar { background: #000; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--gold); height: 50px; flex-shrink: 0; }
-        .btn-salir { color: #aaa; text-decoration: none; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; }
+        .top-bar { 
+            background: #000; padding: 10px; display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 2px solid var(--gold); height: 50px; position: sticky; top: 0; z-index: 500;
+        }
+        .btn-salir { color: #aaa; text-decoration: none; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; }
 
-        /* VISTAS */
-        .view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
+        .main-container { width: 100%; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; padding-bottom: 40px; }
+        .view { display: none; width: 100%; flex-direction: column; align-items: center; }
         .active { display: flex; }
 
         /* LOBBY */
-        .lobby-box { background: var(--panel); padding: 30px; border-radius: 15px; text-align: center; width: 80%; max-width: 400px; border: 1px solid #444; }
-        input { width: 80%; padding: 10px; margin: 10px 0; text-align: center; background: #111; border: 1px solid var(--gold); color: white; border-radius: 5px; }
-        .btn-main { background: var(--gold); color: black; border: none; padding: 12px 20px; font-weight: bold; border-radius: 25px; cursor: pointer; width: 100%; margin-top: 10px; }
+        .lobby-box { background: var(--panel); padding: 30px; border-radius: 15px; text-align: center; width: 90%; max-width: 400px; border: 1px solid #444; margin-top: 40px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; text-align: center; background: #111; border: 1px solid var(--gold); color: white; border-radius: 5px; box-sizing: border-box; }
+        .btn-main { background: var(--gold); color: black; border: none; padding: 12px; font-weight: bold; border-radius: 25px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 1em; }
         .btn-sec { background: #333; color: white; border: 1px solid #555; }
         .btn-bot { background: #2c3e50; color: #3498db; border: 1px solid #3498db; margin-top: 5px; width: 100%; padding: 10px; border-radius: 25px; cursor: pointer; font-weight: bold; }
 
-        /* ESPERA */
-        .waiting-list { width: 90%; background: #111; padding: 10px; border-radius: 10px; margin: 20px 0; min-height: 50px; }
-        .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
-        .avatar-dot { width: 15px; height: 15px; border-radius: 50%; }
-
-        /* --- TABLERO RESPONSIVO --- */
+        /* TABLERO */
+        .board-wrapper { width: 96%; margin: 10px auto; position: relative; }
         .board-container {
-            flex: 1; 
-            width: 100%; 
-            max-width: 600px; /* Un poco más ancho para aprovechar el formato rectangular */
-            /* Proporción 5:4 para ajustarse mejor a tu imagen rectangular */
-            aspect-ratio: 5/4; 
-            margin: 5px auto;
-            
-            display: grid; 
-            grid-template-columns: repeat(6, 1fr); 
-            grid-template-rows: repeat(6, 1fr);
-            
-            /* CERO GAP: Esto soluciona el desalineamiento */
-            gap: 0; 
-            
-            position: relative;
-            background-image: url('tablero monopoli.jpg');
-            background-size: 100% 100%;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            width: 100%; aspect-ratio: 6/5; display: grid; 
+            grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(6, 1fr); gap: 0; 
+            background-image: url('tablero monopoli.jpg'); background-size: 100% 100%;
+            border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.8); position: relative;
         }
 
-        /* CENTRO DEL TABLERO (CAJA PEQUEÑA) */
         .board-center {
-            grid-column: 3 / span 2; 
-            grid-row: 3 / span 2;
-            
-            /* Centrado absoluto dentro de las 4 casillas centrales */
+            grid-column: 3 / span 2; grid-row: 3 / span 2;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 80%; height: 80%; margin: auto;
+            background: rgba(0, 0, 0, 0.85); border-radius: 50%;
+            border: 2px solid rgba(255, 215, 0, 0.3); backdrop-filter: blur(2px); z-index: 40;
             text-align: center;
-            
-            /* Caja visualmente más pequeña */
-            width: 140px; 
-            height: 140px;
-            margin: auto; /* Auto margin para centrar en el grid area */
-            
-            background: rgba(0, 0, 0, 0.7); 
-            border-radius: 50%; /* Redonda para no chocar con las esquinas */
-            border: 2px solid rgba(255, 215, 0, 0.2);
-            backdrop-filter: blur(3px);
-            z-index: 50;
         }
 
-        /* CASILLAS INVISIBLES */
-        .space { 
-            position: relative; 
-            width: 100%; height: 100%; 
-            /* background: rgba(255,0,0,0.1); Descomenta para ver la rejilla si necesitas depurar */
-        }
-
-        /* MARCADOR DE DUEÑO */
+        .space { position: relative; width: 100%; height: 100%; }
         .owned-mark { 
-            position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
-            border: 0px solid transparent; 
-            box-sizing: border-box; 
-            pointer-events: none; 
-            border-radius: 6px;
-            transition: all 0.3s;
+            position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px;
+            border: 0px solid transparent; border-radius: 4px; pointer-events: none; transition: all 0.3s;
         }
-
-        /* FICHAS */
         .token {
-            /* Tamaño relativo a la casilla para ser responsivo */
-            width: 28%; height: 28%; 
-            border-radius: 50%; border: 2px solid white;
-            position: absolute; z-index: 20; 
-            transition: all 0.4s ease-out; /* Movimiento suave */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.9);
+            width: 30%; height: 30%; border-radius: 50%; border: 2px solid white;
+            position: absolute; z-index: 20; transition: all 0.4s ease-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.9); top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
 
         /* CONTROLES */
-        #turn-msg {
-            color: var(--gold); font-weight: bold; margin-bottom: 2px; 
-            font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px;
-        }
-
+        #turn-msg { color: var(--gold); font-weight: bold; margin-bottom: 2px; font-size: 0.7em; text-transform: uppercase; }
         #dice-btn { 
-            width: 50px; height: 50px; 
-            background: white; color: black;
-            border-radius: 12px;
-            font-size: 1.8em; font-weight: bold;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transition: transform 0.1s;
+            width: 50px; height: 50px; background: white; color: black; border-radius: 10px;
+            font-size: 2em; font-weight: bold; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        #dice-btn:active { transform: scale(0.9); }
         .shaking { animation: shake 0.5s infinite; background: #ffffcc !important; }
         
-        /* BOTONES FLOTANTES */
         .action-area { 
-            position: absolute; 
-            bottom: -45px; /* Fuera de la bola central */
-            width: 200px; left: 50%; transform: translateX(-50%);
-            display: flex; justify-content: center; gap: 5px; 
-            z-index: 100;
+            position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            width: 280px; z-index: 100; text-align: center;
         }
-        .btn-buy { background: var(--green); color: black; padding: 6px 12px; border-radius: 20px; border: 2px solid white; font-weight: bold; font-size: 0.8em; cursor: pointer; box-shadow: 0 4px 8px black; }
-        .btn-pay { background: var(--red); color: white; padding: 6px 12px; border-radius: 20px; border: 2px solid white; font-weight: bold; font-size: 0.8em; box-shadow: 0 4px 8px black; }
+        
+        .btn-buy { background: var(--green); color: black; padding: 8px 16px; border-radius: 20px; border: 2px solid white; font-weight: bold; font-size: 0.8em; cursor: pointer; box-shadow: 0 4px 8px black; margin-bottom: 5px; }
+        .rent-hint { font-size: 0.75em; color: #ccc; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; margin-top: 2px;}
+        
+        .msg-pay { background: rgba(0,0,0,0.9); padding: 10px; border-radius: 10px; border: 1px solid var(--red); color: white; font-size: 0.8em; animation: fadeIn 0.3s; }
+        .pay-amount { color: var(--red); font-weight: bold; font-size: 1.2em; display: block; margin: 5px 0;}
+        .new-balance { color: var(--green); font-weight: bold; }
 
         /* LISTA JUGADORES */
-        .players-bar {
-            height: 75px; background: #111; border-top: 2px solid var(--gold);
-            display: flex; align-items: center; padding: 0 10px; overflow-x: auto; gap: 10px; flex-shrink: 0;
-        }
-        .p-card {
-            background: #222; padding: 5px 10px; border-radius: 10px; min-width: 90px;
-            border: 1px solid #444; font-size: 0.8em; display: flex; flex-direction: column; opacity: 0.7;
-        }
-        .p-card.active { border: 2px solid var(--gold); background: #333; opacity: 1; transform: scale(1.05); }
-        .money { color: var(--green); font-weight: bold; font-size: 1.2em; }
+        .players-panel { width: 94%; margin: 70px auto 20px auto; background: #111; border-radius: 12px; border: 1px solid #333; padding: 15px; }
+        .panel-title { color: #888; font-size: 0.8em; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+        .players-grid { display: flex; flex-direction: column; gap: 8px; }
+        .p-row { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px; border-radius: 8px; border-left: 4px solid transparent; }
+        .p-row.active { background: #2a2a2a; border-left: 4px solid var(--gold); border: 1px solid var(--gold); }
+        .p-info { display: flex; align-items: center; gap: 10px; }
+        .p-money { color: var(--green); font-weight: bold; }
+
+        /* ESPERA */
+        .waiting-list { width: 90%; background: #111; padding: 10px; border-radius: 10px; margin: 20px 0; }
+        .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
 
         @keyframes shake { 0% { transform: rotate(0); } 25% { transform: rotate(10deg); } 75% { transform: rotate(-10deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -160,38 +110,50 @@
         <a href="index.html" class="btn-salir">Salir</a>
     </div>
 
-    <div id="view-login" class="view active">
-        <div class="lobby-box">
-            <h2 style="color:var(--gold)">SALA DE JUEGO</h2>
-            <input type="text" id="input-nombre" placeholder="Tu Nombre">
-            <button class="btn-main" onclick="crearSala()">CREAR PARTIDA</button>
-            <div style="margin:10px">- O -</div>
-            <input type="number" id="input-codigo" placeholder="Código Sala">
-            <button class="btn-main btn-sec" onclick="unirseSala()">UNIRSE</button>
-        </div>
-    </div>
-
-    <div id="view-waiting" class="view">
-        <h2 style="color:var(--gold)">SALA: <span id="lbl-room-id">...</span></h2>
-        <p>Esperando jugadores...</p>
-        <div id="waiting-list" class="waiting-list"></div>
+    <div class="main-container">
         
-        <div id="host-controls" style="display:none; width: 80%;">
-            <button class="btn-bot" onclick="agregarBot()">+ AÑADIR BOT 🤖</button>
-            <button class="btn-main" onclick="iniciarPartida()">INICIAR JUEGO</button>
-        </div>
-        <div id="guest-msg" style="display:none; color:#aaa; font-style: italic;">Esperando al anfitrión...</div>
-    </div>
-
-    <div id="view-game" class="view" style="justify-content: flex-start;">
-        <div class="board-container" id="board">
-            <div class="board-center">
-                <div id="turn-msg">...</div>
-                <div id="dice-btn" onclick="lanzarDadoHumano()">🎲</div>
-                <div id="action-zone" class="action-area"></div>
+        <div id="view-login" class="view active">
+            <div class="lobby-box">
+                <h2 style="color:var(--gold)">SALA DE JUEGO</h2>
+                <input type="text" id="input-nombre" placeholder="Tu Nombre">
+                <button class="btn-main" onclick="crearSala()">CREAR PARTIDA</button>
+                <div style="margin:10px">- O -</div>
+                <input type="number" id="input-codigo" placeholder="Código Sala">
+                <button class="btn-main btn-sec" onclick="unirseSala()">UNIRSE</button>
             </div>
         </div>
-        <div class="players-bar" id="players-list"></div>
+
+        <div id="view-waiting" class="view">
+            <h2 style="color:var(--gold)">SALA: <span id="lbl-room-id">...</span></h2>
+            <p>Esperando jugadores...</p>
+            <div id="waiting-list" class="waiting-list"></div>
+            
+            <div id="host-controls" style="display:none; width: 80%;">
+                <button class="btn-bot" onclick="agregarBot()">+ AÑADIR BOT 🤖</button>
+                <button class="btn-main" onclick="iniciarPartida()">INICIAR JUEGO</button>
+            </div>
+            <div id="guest-msg" style="display:none; color:#aaa; font-style: italic;">Esperando al anfitrión...</div>
+        </div>
+
+        <div id="view-game" class="view">
+            
+            <div class="board-wrapper">
+                <div class="board-container" id="board">
+                    <div class="board-center">
+                        <div id="turn-msg">...</div>
+                        <div id="dice-btn" onclick="lanzarDadoHumano()">🎲</div>
+                        
+                        <div id="action-zone" class="action-area"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="players-panel">
+                <div class="panel-title">JUGADORES Y DINERO 💰</div>
+                <div id="ingame-players" class="players-grid"></div>
+            </div>
+
+        </div>
     </div>
 
     <script>
@@ -207,35 +169,38 @@
         try { firebase.initializeApp(firebaseConfig); } catch(e) {}
         const db = firebase.database();
 
+        // DATOS DEL TABLERO
         const BOARD_DATA = [
-            { name: "SALIDA", type: 'corner' },
-            { name: "AV. 1", price: 60, rent: 10, type: 'prop' },
-            { name: "AV. 2", price: 60, rent: 12, type: 'prop' },
-            { name: "TREN", price: 200, rent: 50, type: 'prop' },
-            { name: "PLAZA", price: 100, rent: 15, type: 'prop' },
+            { name: "SALIDA", type: 'corner' }, // 0
+            { name: "AV. 1", price: 60, rent: 10, type: 'prop' }, // 1
+            { name: "AV. 2", price: 60, rent: 12, type: 'prop' }, // 2
+            { name: "TREN", price: 200, rent: 50, type: 'prop' }, // 3
+            { name: "PLAZA", price: 100, rent: 15, type: 'prop' }, // 4
             { name: "CÁRCEL", type: 'corner' }, // 5
-            { name: "MUSEO", price: 140, rent: 20, type: 'prop' },
-            { name: "CINE", price: 160, rent: 22, type: 'prop' },
-            { name: "LUZ", price: 150, rent: 30, type: 'prop' },
-            { name: "CLUB", price: 200, rent: 30, type: 'prop' },
+            { name: "MUSEO", price: 140, rent: 20, type: 'prop' }, // 6
+            { name: "CINE", price: 160, rent: 22, type: 'prop' }, // 7
+            { name: "LUZ", price: 150, rent: 30, type: 'prop' }, // 8
+            { name: "CLUB", price: 200, rent: 30, type: 'prop' }, // 9
             { name: "PARKING", type: 'corner' }, // 10
-            { name: "HOTEL", price: 220, rent: 35, type: 'prop' },
-            { name: "CASINO", price: 240, rent: 40, type: 'prop' },
-            { name: "TREN 2", price: 200, rent: 50, type: 'prop' },
-            { name: "JARDÍN", price: 260, rent: 45, type: 'prop' },
+            { name: "HOTEL", price: 220, rent: 35, type: 'prop' }, // 11
+            { name: "CASINO", price: 240, rent: 40, type: 'prop' }, // 12
+            { name: "TREN 2", price: 200, rent: 50, type: 'prop' }, // 13
+            { name: "JARDÍN", price: 260, rent: 45, type: 'prop' }, // 14
             { name: "IR A CÁRCEL", type: 'corner' }, // 15
-            { name: "PLAYA", price: 300, rent: 50, type: 'prop' },
-            { name: "MANSIÓN", price: 320, rent: 55, type: 'prop' },
-            { name: "IMPUESTO", price: 0, rent: 100, type: 'tax' },
-            { name: "TORRE", price: 400, rent: 70, type: 'prop' }
+            { name: "PLAYA", price: 300, rent: 50, type: 'prop' }, // 16
+            { name: "MANSIÓN", price: 320, rent: 55, type: 'prop' }, // 17
+            { name: "IMPUESTO", price: 0, rent: 100, type: 'tax' }, // 18
+            { name: "TORRE", price: 400, rent: 70, type: 'prop' } // 19
         ];
 
-        // CONFIGURACIÓN DE GRID (Indices de CSS Grid)
         const GRID_POS = [
-            {r:6, c:6}, {r:6, c:5}, {r:6, c:4}, {r:6, c:3}, {r:6, c:2}, {r:6, c:1},
-            {r:5, c:1}, {r:4, c:1}, {r:3, c:1}, {r:2, c:1},
-            {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}, {r:1, c:5}, {r:1, c:6},
-            {r:2, c:6}, {r:3, c:6}, {r:4, c:6}, {r:5, c:6}
+            {r:6, c:6}, {r:6, c:5}, {r:6, c:4}, {r:6, c:3}, {r:6, c:2}, // Abajo
+            {r:6, c:1}, // Esq Inf Izq
+            {r:5, c:1}, {r:4, c:1}, {r:3, c:1}, {r:2, c:1}, // Izquierda
+            {r:1, c:1}, // Esq Sup Izq
+            {r:1, c:2}, {r:1, c:3}, {r:1, c:4}, {r:1, c:5}, // Arriba
+            {r:1, c:6}, // Esq Sup Der
+            {r:2, c:6}, {r:3, c:6}, {r:4, c:6}, {r:5, c:6}  // Derecha
         ];
 
         let myName = "", myId = "", roomId = "", isHost = false;
@@ -252,13 +217,12 @@
                 div.id = 'space-' + i;
                 div.style.gridRow = pos.r;
                 div.style.gridColumn = pos.c;
-                // Marcador de propiedad
                 div.innerHTML = `<div id="owner-${i}" class="owned-mark"></div>`;
                 boardDiv.appendChild(div);
             });
         }
 
-        // --- FUNCIONES SALA ---
+        // --- SALA ---
         function crearSala() {
             myName = document.getElementById('input-nombre').value.trim();
             if(!myName) return alert("Nombre obligatorio");
@@ -336,16 +300,20 @@
                 if(!data) return;
 
                 players = [];
-                const listDiv = document.getElementById('players-list');
+                const listDiv = document.getElementById('ingame-players');
                 listDiv.innerHTML = "";
                 
                 Object.keys(data.players).forEach((key, idx) => {
                     let p = data.players[key]; p.id = key; players.push(p);
                     listDiv.innerHTML += `
-                        <div class="p-card ${idx === data.currentTurn ? 'active' : ''}">
-                            <span style="color:${p.color}; font-weight:bold;">${p.name} ${p.isBot?'🤖':''}</span>
-                            <span class="money">$${p.money}</span>
-                        </div>`;
+                        <div class="p-row ${idx === data.currentTurn ? 'active' : ''}">
+                            <div class="p-info">
+                                <div class="avatar-dot" style="background:${p.color}"></div>
+                                <span>${p.name} ${p.isBot?'🤖':''}</span>
+                            </div>
+                            <span class="p-money">$${p.money}</span>
+                        </div>
+                    `;
                 });
 
                 turnIndex = data.currentTurn;
@@ -371,13 +339,12 @@
                     t.className = 'token';
                     t.style.backgroundColor = p.color;
                     
-                    // LÓGICA DE POSICIONAMIENTO EN CUADRÍCULA 2x2 DENTRO DE LA CASILLA
+                    // Posicionamiento preciso
                     const slot = i % 4; // 0, 1, 2, 3
-                    const top = (slot < 2) ? '15%' : '55%';
-                    const left = (slot % 2 === 0) ? '15%' : '55%';
-                    
-                    t.style.top = top;
-                    t.style.left = left;
+                    if (slot === 0) { t.style.top = '25%'; t.style.left = '25%'; }
+                    if (slot === 1) { t.style.top = '25%'; t.style.left = '75%'; }
+                    if (slot === 2) { t.style.top = '75%'; t.style.left = '25%'; }
+                    if (slot === 3) { t.style.top = '75%'; t.style.left = '75%'; }
                     
                     space.appendChild(t);
                 }
@@ -404,9 +371,7 @@
         function updateControls() {
             const turnMsg = document.getElementById('turn-msg');
             const diceBtn = document.getElementById('dice-btn');
-            const actionZone = document.getElementById('action-zone');
             
-            actionZone.innerHTML = "";
             const curr = players[turnIndex];
             if(!curr) return;
 
@@ -419,6 +384,7 @@
             }
         }
 
+        // --- ACCIONES ---
         function lanzarDadoHumano() {
             const diceBtn = document.getElementById('dice-btn');
             diceBtn.classList.add('shaking');
@@ -444,7 +410,7 @@
                     const val = Math.floor(Math.random() * 6) + 1;
                     btn.innerText = val;
                     moverFichaPasoAPaso(val, botId);
-                    setTimeout(() => botProcessing = false, 3500); 
+                    setTimeout(() => botProcessing = false, 4000); // Dar tiempo a la animación de pago
                 }, 1000);
             }, 1000);
         }
@@ -459,6 +425,7 @@
                 let nuevaPos = currentPos + contador;
                 if(nuevaPos >= 20) {
                     nuevaPos = nuevaPos % 20;
+                    // Vuelta (solo si soy dueño o host para bot)
                     if(pid === myId || (isHost && players[pIdx].isBot)) {
                         let p = players.find(x => x.id === pid);
                         db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money + 200);
@@ -481,6 +448,9 @@
             const player = players.find(p => p.id === pid);
             const currentMoney = player.money;
 
+            // Limpiar zona
+            actionZone.innerHTML = "";
+
             if(pos === 15) { // CÁRCEL
                 if(isMe) alert("¡A LA CÁRCEL!");
                 db.ref('monopoly/' + roomId + '/players/' + pid).update({ pos: 5 });
@@ -488,36 +458,56 @@
                 return;
             }
 
+            // IMPUESTO (AUTO)
             if(space.type === 'tax') {
-                if(isMe) actionZone.innerHTML = `<button class="btn-pay" onclick="pagarBanco(${space.rent}, '${pid}')">IMPUESTO $${space.rent}</button>`;
-                else if(player.isBot && isHost) setTimeout(() => pagarBanco(space.rent, pid), 1000);
+                if(isMe || (player.isBot && isHost)) {
+                    pagarBanco(space.rent, pid, "IMPUESTO");
+                }
                 return;
             }
 
+            // PROPIEDAD
             if(space.type === 'prop') {
                 const ownerId = properties[pos];
+                
+                // Sin dueño -> COMPRAR (Manual para humano, Auto para Bot)
                 if(!ownerId || ownerId === "") {
                     if(currentMoney >= space.price) {
                         if(isMe) {
                             actionZone.innerHTML = `
-                                <button class="btn-buy" onclick="comprarPropiedad(${pos}, ${space.price}, '${pid}')">COMPRAR $${space.price}</button>
-                                <button class="btn-sec" onclick="pasarTurno()" style="border-radius:20px; padding:6px 12px; font-weight:bold;">PASAR</button>
+                                <div style="display:flex; flex-direction:column; align-items:center;">
+                                    <button class="btn-buy" onclick="comprarPropiedad(${pos}, ${space.price}, '${pid}')">COMPRAR $${space.price}</button>
+                                    <div class="rent-hint">Renta futura: $${space.rent}</div>
+                                    <button class="btn-sec" onclick="pasarTurno()" style="margin-top:5px; padding:4px 10px; font-size:0.7em; border-radius:15px;">PASAR</button>
+                                </div>
                             `;
-                        } else if (player.isBot && isHost) setTimeout(() => comprarPropiedad(pos, space.price, pid), 1000);
+                        } else if (player.isBot && isHost) {
+                            setTimeout(() => comprarPropiedad(pos, space.price, pid), 1000);
+                        }
                     } else {
-                        if(isMe) actionZone.innerHTML = `<span style="color:red; font-weight:bold;">Sin $</span> <button class="btn-sec" onclick="pasarTurno()" style="border-radius:20px;">FIN</button>`;
-                        else if(player.isBot && isHost) setTimeout(pasarTurno, 1000);
+                        // No alcanza
+                        if(isMe) {
+                            actionZone.innerHTML = `<span style="color:red; font-weight:bold; background:rgba(0,0,0,0.8); padding:5px; border-radius:5px;">Sin Dinero</span>`;
+                            setTimeout(pasarTurno, 1500);
+                        } else if(player.isBot && isHost) setTimeout(pasarTurno, 1000);
                     }
-                } else if(ownerId !== pid) {
-                    if(isMe) actionZone.innerHTML = `<button class="btn-pay" onclick="pagarRenta('${ownerId}', ${space.rent}, '${pid}')">PAGAR $${space.rent}</button>`;
-                    else if(player.isBot && isHost) setTimeout(() => pagarRenta(ownerId, space.rent, pid), 1000);
-                } else {
+                } 
+                // Con dueño ajeno -> PAGAR AUTO
+                else if(ownerId !== pid) {
+                    if(isMe || (player.isBot && isHost)) {
+                        pagarRenta(ownerId, space.rent, pid);
+                    }
+                } 
+                // Mía
+                else {
                     pasarTurno();
                 }
             } else {
                 if(isMe || (player.isBot && isHost)) setTimeout(pasarTurno, 1000);
             }
         }
+
+        // --- TRANSACCIONES CON FEEDBACK ---
 
         function comprarPropiedad(pos, price, pid) {
             let p = players.find(x => x.id === pid);
@@ -529,15 +519,51 @@
         function pagarRenta(ownerId, amount, pid) {
             let p = players.find(x => x.id === pid);
             let owner = players.find(x => x.id === ownerId);
-            db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money - amount);
+            
+            // UI Feedback
+            const actionZone = document.getElementById('action-zone');
+            const nuevoSaldo = p.money - amount;
+            
+            actionZone.innerHTML = `
+                <div class="msg-pay">
+                    Propiedad de ${owner.name}<br>
+                    <span class="pay-amount">PAGASTE $${amount}</span>
+                    <span class="new-balance">Saldo: $${nuevoSaldo}</span>
+                </div>
+            `;
+
+            // Ejecutar pago real
+            db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(nuevoSaldo);
             db.ref('monopoly/' + roomId + '/players/' + ownerId + '/money').set(owner.money + amount);
-            pasarTurno();
+            
+            // Esperar para leer y pasar
+            setTimeout(() => {
+                actionZone.innerHTML = "";
+                pasarTurno();
+            }, 2000);
         }
 
-        function pagarBanco(amount, pid) {
+        function pagarBanco(amount, pid, motivo) {
             let p = players.find(x => x.id === pid);
-            db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money - amount);
-            pasarTurno();
+            
+            // UI Feedback
+            const actionZone = document.getElementById('action-zone');
+            const nuevoSaldo = p.money - amount;
+
+            actionZone.innerHTML = `
+                <div class="msg-pay">
+                    ${motivo}<br>
+                    <span class="pay-amount">-$${amount}</span>
+                    <span class="new-balance">Saldo: $${nuevoSaldo}</span>
+                </div>
+            `;
+
+            db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(nuevoSaldo);
+            
+            setTimeout(() => {
+                actionZone.innerHTML = "";
+                pasarTurno();
+            }, 2000);
         }
 
         function pasarTurno() {
