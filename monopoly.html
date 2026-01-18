@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monopolio Mario</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        :root { --bg: #121212; --panel: #1e1e1e; --gold: #FFD700; --green: #00e676; --red: #ff5252; }
+        body { 
+            background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; 
+            margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; 
+            overflow: hidden; user-select: none; 
+        }
+
+        /* HEADER */
+        .top-bar { background: #000; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--gold); height: 50px; flex-shrink: 0; }
+        .btn-salir { color: #aaa; text-decoration: none; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; }
+
+        /* VISTAS */
+        .view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
+        .active { display: flex; }
+
+        /* LOBBY */
+        .lobby-box { background: var(--panel); padding: 30px; border-radius: 15px; text-align: center; width: 80%; max-width: 400px; border: 1px solid #444; }
+        input { width: 80%; padding: 10px; margin: 10px 0; text-align: center; background: #111; border: 1px solid var(--gold); color: white; border-radius: 5px; }
+        .btn-main { background: var(--gold); color: black; border: none; padding: 12px 20px; font-weight: bold; border-radius: 25px; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-sec { background: #333; color: white; border: 1px solid #555; }
+        .btn-bot { background: #2c3e50; color: #3498db; border: 1px solid #3498db; margin-top: 5px; width: 100%; padding: 10px; border-radius: 25px; cursor: pointer; font-weight: bold; }
+
+        /* ESPERA */
+        .waiting-list { width: 90%; background: #111; padding: 10px; border-radius: 10px; margin: 20px 0; min-height: 50px; }
+        .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
+        .avatar-dot { width: 15px; height: 15px; border-radius: 50%; }
+
+        /* TABLERO CON IMAGEN DE FONDO */
+        .board-container {
+            flex: 1; width: 98%; max-width: 500px; 
+            /* Se ajusta para mantener proporción cuadrada en cualquier pantalla */
+            aspect-ratio: 1/1; 
+            margin: 5px auto;
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            grid-template-rows: repeat(6, 1fr);
+            position: relative;
+            background-image: url('tablero monopoli.jpg');
+            background-size: 100% 100%;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        /* --- CAJA CENTRAL PEQUEÑA (MODIFICADO) --- */
+        .board-center {
+            /* Ocupa solo el centro exacto (2x2) en lugar de todo el medio */
+            grid-column: 3 / span 2; 
+            grid-row: 3 / span 2;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; 
+            
+            /* Fondo más sutil y redondeado */
+            background: rgba(0, 0, 0, 0.75); 
+            border-radius: 50%; /* Circular para que parezca un hub */
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            backdrop-filter: blur(4px);
+            
+            /* Asegura que no se salga */
+            width: 90%; height: 90%;
+            margin: auto;
+            z-index: 50; /* Por encima del fondo pero bajo fichas si pasan */
+        }
+
+        /* CASILLAS INVISIBLES (SOLO LÓGICA) */
+        .space { position: relative; width: 100%; height: 100%; }
+
+        /* MARCADOR DE DUEÑO (Borde de color) */
+        .owned-mark { 
+            position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px;
+            border: 0px solid transparent; 
+            box-sizing: border-box; 
+            pointer-events: none; 
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        /* FICHAS RESPONSIVAS */
+        .token {
+            width: 25%; height: 25%; /* Relativo a la casilla */
+            border-radius: 50%; border: 2px solid white;
+            position: absolute; z-index: 20; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.9);
+        }
+
+        /* CONTROLES CENTRALES */
+        #turn-msg {
+            color: var(--gold); font-weight: bold; margin-bottom: 5px; 
+            font-size: 0.8em; text-transform: uppercase;
+        }
+
+        #dice-btn { 
+            width: 50px; height: 50px; /* Más compacto */
+            background: white; color: black;
+            border-radius: 10px;
+            font-size: 2em; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; 
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            transition: transform 0.1s;
+        }
+        #dice-btn:active { transform: scale(0.9); }
+        .shaking { animation: shake 0.5s infinite; background: #ffffcc !important; }
+        
+        /* BOTONES DE ACCIÓN FLOTANTES (FUERA DE LA CAJA PEQUEÑA SI ES NECESARIO) */
+        .action-area { 
+            position: absolute; 
+            bottom: -50px; /* Flotan debajo del dado */
+            width: 200px; left: 50%; transform: translateX(-50%);
+            display: flex; justify-content: center; gap: 5px; 
+            flex-wrap: nowrap;
+        }
+        .btn-buy { background: var(--green); color: black; padding: 6px 12px; border-radius: 20px; border: none; font-weight: bold; font-size: 0.8em; cursor: pointer; box-shadow: 0 0 10px black; white-space: nowrap;}
+        .btn-pay { background: var(--red); color: white; padding: 6px 12px; border-radius: 20px; border: none; font-weight: bold; font-size: 0.8em; box-shadow: 0 0 10px black; white-space: nowrap;}
+
+        /* LISTA JUGADORES */
+        .players-bar {
+            height: 75px; background: #111; border-top: 2px solid var(--gold);
+            display: flex; align-items: center; padding: 0 10px; overflow-x: auto; gap: 10px; flex-shrink: 0;
+        }
+        .p-card {
+            background: #222; padding: 5px 10px; border-radius: 10px; min-width: 90px;
+            border: 1px solid #444; font-size: 0.8em; display: flex; flex-direction: column; opacity: 0.7;
+        }
+        .p-card.active { border: 2px solid var(--gold); background: #333; opacity: 1; transform: scale(1.05); }
+        .money { color: var(--green); font-weight: bold; font-size: 1.2em; }
+
+        @keyframes shake { 0% { transform: rotate(0); } 25% { transform: rotate(10deg); } 75% { transform: rotate(-10deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <span>🍄 MONOPOLIO MARIO</span>
+        <a href="index.html" class="btn-salir">Salir</a>
+    </div>
+
+    <div id="view-login" class="view active">
+        <div class="lobby-box">
+            <h2 style="color:var(--gold)">SALA DE JUEGO</h2>
+            <input type="text" id="input-nombre" placeholder="Tu Nombre">
+            <button class="btn-main" onclick="crearSala()">CREAR PARTIDA</button>
+            <div style="margin:10px">- O -</div>
+            <input type="number" id="input-codigo" placeholder="Código Sala">
+            <button class="btn-main btn-sec" onclick="unirseSala()">UNIRSE</button>
+        </div>
+    </div>
+
+    <div id="view-waiting" class="view">
+        <h2 style="color:var(--gold)">SALA: <span id="lbl-room-id">...</span></h2>
+        <p>Esperando jugadores...</p>
+        <div id="waiting-list" class="waiting-list"></div>
+        
+        <div id="host-controls" style="display:none; width: 80%;">
+            <button class="btn-bot" onclick="agregarBot()">+ AÑADIR BOT 🤖</button>
+            <button class="btn-main" onclick="iniciarPartida()">INICIAR JUEGO</button>
+        </div>
+        <div id="guest-msg" style="display:none; color:#aaa; font-style: italic;">Esperando al anfitrión...</div>
+    </div>
+
+    <div id="view-game" class="view" style="justify-content: flex-start;">
+        <div class="board-container" id="board">
+            <div class="board-center">
+                <div id="turn-msg">...</div>
+                
+                <div id="dice-btn" onclick="lanzarDadoHumano()">🎲</div>
+                
+                <div id="action-zone" class="action-area"></div>
+            </div>
+        </div>
+        <div class="players-bar" id="players-list"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
+            authDomain: "casino-familia.firebaseapp.com",
+            databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+            projectId: "casino-familia",
+            storageBucket: "casino-familia.firebasestorage.app",
+            messagingSenderId: "390973825874",
+            appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+        };
+        try { firebase.initializeApp(firebaseConfig); } catch(e) {}
+        const db = firebase.database();
+
+        // DATOS DEL TABLERO
+        const BOARD_DATA = [
+            { name: "SALIDA", type: 'corner' },
+            { name: "AV. 1", price: 60, rent: 10, type: 'prop' },
+            { name: "AV. 2", price: 60, rent: 12, type: 'prop' },
+            { name: "TREN", price: 200, rent: 50, type: 'prop' },
+            { name: "PLAZA", price: 100, rent: 15, type: 'prop' },
+            { name: "CÁRCEL", type: 'corner' }, // 5
+            { name: "MUSEO", price: 140, rent: 20, type: 'prop' },
+            { name: "CINE", price: 160, rent: 22, type: 'prop' },
+            { name: "LUZ", price: 150, rent: 30, type: 'prop' },
+            { name: "CLUB", price: 200, rent: 30, type: 'prop' },
+            { name: "PARKING", type: 'corner' }, // 10
+            { name: "HOTEL", price: 220, rent: 35, type: 'prop' },
+            { name: "CASINO", price: 240, rent: 40, type: 'prop' },
+            { name: "TREN 2", price: 200, rent: 50, type: 'prop' },
+            { name: "JARDÍN", price: 260, rent: 45, type: 'prop' },
+            { name: "IR A CÁRCEL", type: 'corner' }, // 15
+            { name: "PLAYA", price: 300, rent: 50, type: 'prop' },
+            { name: "MANSIÓN", price: 320, rent: 55, type: 'prop' },
+            { name: "IMPUESTO", price: 0, rent: 100, type: 'tax' },
+            { name: "TORRE", price: 400, rent: 70, type: 'prop' }
+        ];
+
+        // POSICIONES EN GRID 6x6
+        const GRID_POS = [
+            {r:6, c:6}, {r:6, c:5}, {r:6, c:4}, {r:6, c:3}, {r:6, c:2}, {r:6, c:1},
+            {r:5, c:1}, {r:4, c:1}, {r:3, c:1}, {r:2, c:1},
+            {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}, {r:1, c:5}, {r:1, c:6},
+            {r:2, c:6}, {r:3, c:6}, {r:4, c:6}, {r:5, c:6}
+        ];
+
+        let myName = "", myId = "", roomId = "", isHost = false;
+        let players = [], turnIndex = 0, properties = {};
+        const PLAYER_COLORS = ['#ff5252', '#448aff', '#69f0ae', '#ffd740'];
+
+        function initBoard() {
+            const boardDiv = document.getElementById('board');
+            document.querySelectorAll('.space').forEach(e => e.remove());
+            BOARD_DATA.forEach((data, i) => {
+                const pos = GRID_POS[i];
+                const div = document.createElement('div');
+                div.className = 'space';
+                div.id = 'space-' + i;
+                div.style.gridRow = pos.r;
+                div.style.gridColumn = pos.c;
+                // Marcador de propiedad
+                div.innerHTML = `<div id="owner-${i}" class="owned-mark"></div>`;
+                boardDiv.appendChild(div);
+            });
+        }
+
+        // --- SALA ---
+        function crearSala() {
+            myName = document.getElementById('input-nombre').value.trim();
+            if(!myName) return alert("Nombre obligatorio");
+            roomId = Math.floor(1000 + Math.random() * 9000).toString();
+            myId = 'host'; isHost = true;
+            
+            let props = {}; for(let i=0; i<20; i++) props[i] = "";
+
+            db.ref('monopoly/' + roomId).set({
+                status: 'waiting',
+                currentTurn: 0,
+                props: props,
+                players: { [myId]: { name: myName, money: 1500, pos: 0, color: PLAYER_COLORS[0], isBot: false } }
+            });
+            mostrarLobby();
+        }
+
+        function unirseSala() {
+            myName = document.getElementById('input-nombre').value.trim();
+            roomId = document.getElementById('input-codigo').value.trim();
+            if(!myName || !roomId) return alert("Faltan datos");
+            myId = 'p_' + Date.now();
+
+            db.ref('monopoly/' + roomId).once('value').then(snap => {
+                if(!snap.exists()) return alert("Sala no existe");
+                if(snap.val().status !== 'waiting') return alert("Juego ya iniciado");
+                const count = Object.keys(snap.val().players).length;
+                if(count >= 4) return alert("Sala llena");
+
+                db.ref('monopoly/' + roomId + '/players/' + myId).set({
+                    name: myName, money: 1500, pos: 0, color: PLAYER_COLORS[count], isBot: false
+                });
+                mostrarLobby();
+            });
+        }
+
+        function agregarBot() {
+            db.ref('monopoly/' + roomId + '/players').once('value').then(snap => {
+                const count = Object.keys(snap.val()).length;
+                if(count >= 4) return alert("Sala llena");
+                const botId = 'bot_' + Date.now();
+                db.ref('monopoly/' + roomId + '/players/' + botId).set({
+                    name: "Bot " + (count), money: 1500, pos: 0, color: PLAYER_COLORS[count], isBot: true
+                });
+            });
+        }
+
+        function mostrarLobby() {
+            document.getElementById('view-login').classList.remove('active');
+            document.getElementById('view-waiting').classList.add('active');
+            document.getElementById('lbl-room-id').innerText = roomId;
+            
+            if(isHost) document.getElementById('host-controls').style.display = 'block';
+            else document.getElementById('guest-msg').style.display = 'block';
+
+            db.ref('monopoly/' + roomId + '/players').on('value', snap => {
+                const list = document.getElementById('waiting-list');
+                list.innerHTML = "";
+                players = [];
+                snap.forEach(c => {
+                    const p = c.val(); p.id = c.key; players.push(p);
+                    list.innerHTML += `<div class="player-item"><div class="avatar-dot" style="background:${p.color}"></div><b>${p.name}</b> ${p.isBot ? '🤖' : ''}</div>`;
+                });
+            });
+
+            db.ref('monopoly/' + roomId + '/status').on('value', snap => {
+                if(snap.val() === 'playing') iniciarJuegoUI();
+            });
+        }
+
+        function iniciarPartida() {
+            db.ref('monopoly/' + roomId).update({ status: 'playing' });
+        }
+
+        // --- JUEGO ---
+        function iniciarJuegoUI() {
+            document.getElementById('view-waiting').classList.remove('active');
+            document.getElementById('view-game').classList.add('active');
+            initBoard();
+
+            db.ref('monopoly/' + roomId).on('value', snap => {
+                const data = snap.val();
+                if(!data) return;
+
+                players = [];
+                const listDiv = document.getElementById('players-list');
+                listDiv.innerHTML = "";
+                
+                Object.keys(data.players).forEach((key, idx) => {
+                    let p = data.players[key]; p.id = key; players.push(p);
+                    listDiv.innerHTML += `
+                        <div class="p-card ${idx === data.currentTurn ? 'active' : ''}">
+                            <span style="color:${p.color}; font-weight:bold;">${p.name} ${p.isBot?'🤖':''}</span>
+                            <span class="money">$${p.money}</span>
+                        </div>
+                    `;
+                });
+
+                turnIndex = data.currentTurn;
+                properties = data.props || {};
+
+                renderTokens();
+                renderOwners();
+                updateControls();
+
+                if(isHost && data.status === 'playing') {
+                    const curr = players[turnIndex];
+                    if(curr && curr.isBot) procesarTurnoBot(curr.id);
+                }
+            });
+        }
+
+        function renderTokens() {
+            document.querySelectorAll('.token').forEach(e => e.remove());
+            players.forEach((p, i) => {
+                const space = document.getElementById('space-' + p.pos);
+                if(space) {
+                    const t = document.createElement('div');
+                    t.className = 'token';
+                    t.style.backgroundColor = p.color;
+                    
+                    // Posicionamiento en cuadrícula 2x2 dentro de la celda
+                    // 0: TopLeft, 1: TopRight, 2: BottomLeft, 3: BottomRight
+                    const slot = i % 4;
+                    const top = (slot >= 2) ? '55%' : '20%';
+                    const left = (slot % 2 !== 0) ? '55%' : '20%';
+                    
+                    t.style.top = top;
+                    t.style.left = left;
+                    
+                    space.appendChild(t);
+                }
+            });
+        }
+
+        function renderOwners() {
+            for(let i=0; i<20; i++) {
+                const border = document.getElementById('owner-'+i);
+                if(properties[i]) {
+                    const owner = players.find(p => p.id === properties[i]);
+                    if(owner) {
+                        border.style.borderWidth = "4px";
+                        border.style.borderColor = owner.color;
+                        border.style.boxShadow = `inset 0 0 10px ${owner.color}`;
+                    }
+                } else {
+                    border.style.borderColor = 'transparent';
+                    border.style.boxShadow = 'none';
+                }
+            }
+        }
+
+        function updateControls() {
+            const turnMsg = document.getElementById('turn-msg');
+            const diceBtn = document.getElementById('dice-btn');
+            const actionZone = document.getElementById('action-zone');
+            
+            actionZone.innerHTML = "";
+            const curr = players[turnIndex];
+            if(!curr) return;
+
+            if(curr.id === myId) {
+                turnMsg.innerText = "¡TU TURNO!";
+                diceBtn.style.opacity = 1; diceBtn.style.pointerEvents = 'all';
+            } else {
+                turnMsg.innerText = `Turno de: ${curr.name}`;
+                diceBtn.style.opacity = 0.3; diceBtn.style.pointerEvents = 'none';
+            }
+        }
+
+        // --- ACCIONES ---
+        function lanzarDadoHumano() {
+            const diceBtn = document.getElementById('dice-btn');
+            diceBtn.classList.add('shaking');
+            diceBtn.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                diceBtn.classList.remove('shaking');
+                const val = Math.floor(Math.random() * 6) + 1;
+                diceBtn.innerText = val;
+                moverFichaPasoAPaso(val, myId);
+            }, 500);
+        }
+
+        let botProcessing = false;
+        function procesarTurnoBot(botId) {
+            if(botProcessing) return;
+            botProcessing = true;
+
+            setTimeout(() => {
+                const btn = document.getElementById('dice-btn');
+                btn.innerText = "🤖";
+                btn.classList.add('shaking');
+                
+                setTimeout(() => {
+                    btn.classList.remove('shaking');
+                    const val = Math.floor(Math.random() * 6) + 1;
+                    btn.innerText = val;
+                    moverFichaPasoAPaso(val, botId);
+                    setTimeout(() => botProcessing = false, 3500); 
+                }, 1000);
+            }, 1000);
+        }
+
+        function moverFichaPasoAPaso(pasos, pid) {
+            let pIdx = players.findIndex(p => p.id === pid);
+            let currentPos = players[pIdx].pos;
+            
+            let contador = 0;
+            let intervalo = setInterval(() => {
+                contador++;
+                let nuevaPos = currentPos + contador;
+                
+                // Si pasa por Salida (20)
+                if(nuevaPos >= 20) {
+                    nuevaPos = nuevaPos % 20; // reset
+                    // Solo el dueño (o host para bot) suma dinero
+                    if(pid === myId || (isHost && players[pIdx].isBot)) {
+                        let p = players.find(x => x.id === pid);
+                        db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money + 200);
+                    }
+                }
+
+                db.ref('monopoly/' + roomId + '/players/' + pid).update({ pos: nuevaPos });
+                if(navigator.vibrate) navigator.vibrate(30);
+
+                if(contador >= pasos) {
+                    clearInterval(intervalo);
+                    setTimeout(() => evaluarCasilla(nuevaPos, pid), 500);
+                }
+            }, 400); // Velocidad del paso
+        }
+
+        function evaluarCasilla(pos, pid) {
+            const space = BOARD_DATA[pos];
+            const actionZone = document.getElementById('action-zone');
+            const isMe = (pid === myId);
+            const player = players.find(p => p.id === pid);
+            const currentMoney = player.money;
+
+            // CÁRCEL
+            if(pos === 15) {
+                if(isMe) alert("¡TE ATRAPÓ BOWSER!");
+                db.ref('monopoly/' + roomId + '/players/' + pid).update({ pos: 5 });
+                pasarTurno();
+                return;
+            }
+
+            // IMPUESTO
+            if(space.type === 'tax') {
+                if(isMe) actionZone.innerHTML = `<button class="btn-pay" onclick="pagarBanco(${space.rent}, '${pid}')">IMPUESTO $${space.rent}</button>`;
+                else if(player.isBot && isHost) setTimeout(() => pagarBanco(space.rent, pid), 1000);
+                return;
+            }
+
+            // PROPIEDAD
+            if(space.type === 'prop') {
+                const ownerId = properties[pos];
+                
+                // Sin dueño -> Comprar
+                if(!ownerId || ownerId === "") {
+                    if(currentMoney >= space.price) {
+                        if(isMe) {
+                            actionZone.innerHTML = `
+                                <button class="btn-buy" onclick="comprarPropiedad(${pos}, ${space.price}, '${pid}')">COMPRAR $${space.price}</button>
+                                <button class="btn-sec" onclick="pasarTurno()" style="margin-left:5px; padding:6px 12px; font-size:0.8em; border-radius:20px;">PASAR</button>
+                            `;
+                        } else if (player.isBot && isHost) {
+                            setTimeout(() => comprarPropiedad(pos, space.price, pid), 1000);
+                        }
+                    } else {
+                        if(isMe) actionZone.innerHTML = `<span style="color:red; font-size:0.8em;">No alcanza</span> <button class="btn-sec" onclick="pasarTurno()" style="border-radius:20px;">FIN</button>`;
+                        else if(player.isBot && isHost) setTimeout(pasarTurno, 1000);
+                    }
+                } 
+                // Con dueño ajeno -> Pagar renta
+                else if(ownerId !== pid) {
+                    if(isMe) actionZone.innerHTML = `<button class="btn-pay" onclick="pagarRenta('${ownerId}', ${space.rent}, '${pid}')">PAGAR $${space.rent}</button>`;
+                    else if(player.isBot && isHost) setTimeout(() => pagarRenta(ownerId, space.rent, pid), 1000);
+                } 
+                // Mía
+                else {
+                    pasarTurno();
+                }
+            } else {
+                if(isMe || (player.isBot && isHost)) setTimeout(pasarTurno, 1000);
+            }
+        }
+
+        function comprarPropiedad(pos, price, pid) {
+            let p = players.find(x => x.id === pid);
+            db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money - price);
+            db.ref('monopoly/' + roomId + '/props/' + pos).set(pid);
+            pasarTurno();
+        }
+
+        function pagarRenta(ownerId, amount, pid) {
+            let p = players.find(x => x.id === pid);
+            let owner = players.find(x => x.id === ownerId);
+            db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money - amount);
+            db.ref('monopoly/' + roomId + '/players/' + ownerId + '/money').set(owner.money + amount);
+            pasarTurno();
+        }
+
+        function pagarBanco(amount, pid) {
+            let p = players.find(x => x.id === pid);
+            db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money - amount);
+            pasarTurno();
+        }
+
+        function pasarTurno() {
+            document.getElementById('action-zone').innerHTML = "";
+            let next = (turnIndex + 1) % players.length;
+            db.ref('monopoly/' + roomId + '/currentTurn').set(next);
+        }
+    </script>
+</body>
+</html>
