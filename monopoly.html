@@ -13,91 +13,156 @@
         :root { --bg: #121212; --panel: #1e1e1e; --gold: #FFD700; --green: #00e676; --red: #ff5252; }
         
         body { 
-            background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; 
-            margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column;
-            overflow-x: hidden; overflow-y: auto; 
+            background: var(--bg); 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            margin: 0; padding: 0; 
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+            overflow-x: hidden; 
+            overflow-y: auto; 
         }
 
+        /* HEADER */
         .top-bar { 
-            background: #000; padding: 10px; display: flex; justify-content: space-between; align-items: center; 
-            border-bottom: 2px solid var(--gold); height: 50px; position: sticky; top: 0; z-index: 500;
+            background: #000; padding: 10px; display: flex; 
+            justify-content: space-between; align-items: center; 
+            border-bottom: 2px solid var(--gold); height: 50px; 
+            position: sticky; top: 0; z-index: 500;
         }
         .btn-salir { color: #aaa; text-decoration: none; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; }
 
-        .main-container { width: 100%; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; padding-bottom: 40px; }
+        /* CONTENEDOR PRINCIPAL */
+        .main-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 40px;
+        }
+
+        /* VISTAS */
         .view { display: none; width: 100%; flex-direction: column; align-items: center; }
         .active { display: flex; }
 
         /* LOBBY */
-        .lobby-box { background: var(--panel); padding: 30px; border-radius: 15px; text-align: center; width: 90%; max-width: 400px; border: 1px solid #444; margin-top: 40px; }
+        .lobby-box { 
+            background: var(--panel); padding: 30px; border-radius: 15px; 
+            text-align: center; width: 90%; max-width: 400px; border: 1px solid #444; 
+            margin-top: 40px;
+        }
         input { width: 100%; padding: 12px; margin: 10px 0; text-align: center; background: #111; border: 1px solid var(--gold); color: white; border-radius: 5px; box-sizing: border-box; }
         .btn-main { background: var(--gold); color: black; border: none; padding: 12px; font-weight: bold; border-radius: 25px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 1em; }
         .btn-sec { background: #333; color: white; border: 1px solid #555; }
         .btn-bot { background: #2c3e50; color: #3498db; border: 1px solid #3498db; margin-top: 5px; width: 100%; padding: 10px; border-radius: 25px; cursor: pointer; font-weight: bold; }
 
-        /* TABLERO */
-        .board-wrapper { width: 96%; margin: 10px auto; position: relative; }
+        /* ESPERA */
+        .waiting-list { width: 90%; background: #111; padding: 10px; border-radius: 10px; margin: 20px 0; }
+        .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
+        .avatar-dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #fff; }
+
+        /* --- TABLERO --- */
+        .board-wrapper {
+            width: 96%;
+            margin: 10px auto;
+            position: relative;
+        }
+
         .board-container {
-            width: 100%; aspect-ratio: 6/5; display: grid; 
-            grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(6, 1fr); gap: 0; 
-            background-image: url('tablero monopoli.jpg'); background-size: 100% 100%;
-            border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.8); position: relative;
+            width: 100%;
+            aspect-ratio: 6/5; 
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            grid-template-rows: repeat(6, 1fr);
+            gap: 0; 
+            background-image: url('tablero monopoli.jpg');
+            background-size: 100% 100%;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+            position: relative;
         }
 
         .board-center {
-            grid-column: 3 / span 2; grid-row: 3 / span 2;
+            grid-column: 3 / span 2; 
+            grid-row: 3 / span 2;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             width: 80%; height: 80%; margin: auto;
-            background: rgba(0, 0, 0, 0.85); border-radius: 50%;
-            border: 2px solid rgba(255, 215, 0, 0.3); backdrop-filter: blur(2px); z-index: 40;
+            background: rgba(0, 0, 0, 0.75); 
+            border-radius: 50%;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            backdrop-filter: blur(2px);
+            z-index: 40;
             text-align: center;
         }
 
         .space { position: relative; width: 100%; height: 100%; }
+
         .owned-mark { 
             position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px;
-            border: 0px solid transparent; border-radius: 4px; pointer-events: none; transition: all 0.3s;
+            border: 0px solid transparent; 
+            border-radius: 4px; pointer-events: none;
+            transition: all 0.3s;
         }
+
         .token {
-            width: 30%; height: 30%; border-radius: 50%; border: 2px solid white;
-            position: absolute; z-index: 20; transition: all 0.4s ease-out;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.9); top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 30%; height: 30%; 
+            border-radius: 50%; border: 2px solid white;
+            position: absolute; z-index: 20; 
+            transition: all 0.4s ease-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.9);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
 
         /* CONTROLES */
-        #turn-msg { color: var(--gold); font-weight: bold; margin-bottom: 2px; font-size: 0.7em; text-transform: uppercase; }
+        #turn-msg {
+            color: var(--gold); font-weight: bold; margin-bottom: 2px; 
+            font-size: 0.7em; text-transform: uppercase;
+        }
+
         #dice-btn { 
-            width: 50px; height: 50px; background: white; color: black; border-radius: 10px;
-            font-size: 2em; font-weight: bold; display: flex; align-items: center; justify-content: center;
+            width: 50px; height: 50px; 
+            background: white; color: black; border-radius: 10px;
+            font-size: 2em; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
             cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
         .shaking { animation: shake 0.5s infinite; background: #ffffcc !important; }
         
         .action-area { 
-            position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            width: 280px; z-index: 100; text-align: center;
+            position: absolute; bottom: -50px; left: 50%; transform: translateX(-50%);
+            display: flex; justify-content: center; gap: 8px; width: 250px;
+            z-index: 100;
+            flex-direction: column; align-items: center;
         }
         
+        /* Botones de acción */
         .btn-buy { background: var(--green); color: black; padding: 8px 16px; border-radius: 20px; border: 2px solid white; font-weight: bold; font-size: 0.8em; cursor: pointer; box-shadow: 0 4px 8px black; margin-bottom: 5px; }
         .rent-hint { font-size: 0.75em; color: #ccc; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; margin-top: 2px;}
+        .btn-pay { background: var(--red); color: white; padding: 8px 16px; border-radius: 20px; border: 2px solid white; font-weight: bold; font-size: 0.8em; box-shadow: 0 4px 8px black; }
         
-        .msg-pay { background: rgba(0,0,0,0.9); padding: 10px; border-radius: 10px; border: 1px solid var(--red); color: white; font-size: 0.8em; animation: fadeIn 0.3s; }
+        .msg-pay { background: rgba(0,0,0,0.9); padding: 10px; border-radius: 10px; border: 1px solid var(--red); color: white; font-size: 0.8em; animation: fadeIn 0.3s; width: 100%; box-sizing: border-box; }
         .pay-amount { color: var(--red); font-weight: bold; font-size: 1.2em; display: block; margin: 5px 0;}
         .new-balance { color: var(--green); font-weight: bold; }
 
         /* LISTA JUGADORES */
-        .players-panel { width: 94%; margin: 70px auto 20px auto; background: #111; border-radius: 12px; border: 1px solid #333; padding: 15px; }
+        .players-panel {
+            width: 94%; margin: 60px auto 20px auto; 
+            background: #111; border-radius: 12px; border: 1px solid #333;
+            padding: 15px;
+        }
         .panel-title { color: #888; font-size: 0.8em; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+        
         .players-grid { display: flex; flex-direction: column; gap: 8px; }
-        .p-row { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px; border-radius: 8px; border-left: 4px solid transparent; }
+        
+        .p-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #222; padding: 10px; border-radius: 8px;
+            border-left: 4px solid transparent;
+        }
         .p-row.active { background: #2a2a2a; border-left: 4px solid var(--gold); border: 1px solid var(--gold); }
         .p-info { display: flex; align-items: center; gap: 10px; }
         .p-money { color: var(--green); font-weight: bold; }
-
-        /* ESPERA */
-        .waiting-list { width: 90%; background: #111; padding: 10px; border-radius: 10px; margin: 20px 0; }
-        .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
 
         @keyframes shake { 0% { transform: rotate(0); } 25% { transform: rotate(10deg); } 75% { transform: rotate(-10deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -107,7 +172,7 @@
 
     <div class="top-bar">
         <span>🍄 MONOPOLIO MARIO</span>
-        <a href="index.html" class="btn-salir">Salir</a>
+        <a href="#" class="btn-salir" onclick="salirDelJuego()">Salir</a>
     </div>
 
     <div class="main-container">
@@ -115,7 +180,9 @@
         <div id="view-login" class="view active">
             <div class="lobby-box">
                 <h2 style="color:var(--gold)">SALA DE JUEGO</h2>
-                <input type="text" id="input-nombre" placeholder="Tu Nombre">
+                
+                <p style="color:#aaa; font-size:0.9em;">Jugando como: <b id="user-display" style="color:white;">Cargando...</b></p>
+                
                 <button class="btn-main" onclick="crearSala()">CREAR PARTIDA</button>
                 <div style="margin:10px">- O -</div>
                 <input type="number" id="input-codigo" placeholder="Código Sala">
@@ -142,7 +209,6 @@
                     <div class="board-center">
                         <div id="turn-msg">...</div>
                         <div id="dice-btn" onclick="lanzarDadoHumano()">🎲</div>
-                        
                         <div id="action-zone" class="action-area"></div>
                     </div>
                 </div>
@@ -168,6 +234,7 @@
         };
         try { firebase.initializeApp(firebaseConfig); } catch(e) {}
         const db = firebase.database();
+        const auth = firebase.auth();
 
         // DATOS DEL TABLERO
         const BOARD_DATA = [
@@ -194,19 +261,45 @@
         ];
 
         const GRID_POS = [
-            {r:6, c:6}, {r:6, c:5}, {r:6, c:4}, {r:6, c:3}, {r:6, c:2}, // Abajo
-            {r:6, c:1}, // Esq Inf Izq
-            {r:5, c:1}, {r:4, c:1}, {r:3, c:1}, {r:2, c:1}, // Izquierda
-            {r:1, c:1}, // Esq Sup Izq
-            {r:1, c:2}, {r:1, c:3}, {r:1, c:4}, {r:1, c:5}, // Arriba
-            {r:1, c:6}, // Esq Sup Der
-            {r:2, c:6}, {r:3, c:6}, {r:4, c:6}, {r:5, c:6}  // Derecha
+            {r:6, c:6}, {r:6, c:5}, {r:6, c:4}, {r:6, c:3}, {r:6, c:2}, {r:6, c:1},
+            {r:5, c:1}, {r:4, c:1}, {r:3, c:1}, {r:2, c:1},
+            {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}, {r:1, c:5}, {r:1, c:6},
+            {r:2, c:6}, {r:3, c:6}, {r:4, c:6}, {r:5, c:6}
         ];
 
         let myName = "", myId = "", roomId = "", isHost = false;
         let players = [], turnIndex = 0, properties = {};
         const PLAYER_COLORS = ['#ff5252', '#448aff', '#69f0ae', '#ffd740'];
 
+        // --- AUTENTICACIÓN Y PERSISTENCIA ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Obtener nombre del correo
+                myName = user.email.split('@')[0];
+                myId = user.uid;
+                document.getElementById('user-display').innerText = myName;
+
+                // RECONEXIÓN AUTOMÁTICA
+                const savedRoom = localStorage.getItem('monopoly_room_id');
+                if (savedRoom) {
+                    roomId = savedRoom;
+                    db.ref('monopoly/' + roomId).once('value').then(snap => {
+                        if(snap.exists()) {
+                            // Si existe la sala, nos reconectamos
+                            mostrarLobby();
+                        } else {
+                            // Si la sala ya no existe, limpiamos
+                            localStorage.removeItem('monopoly_room_id');
+                        }
+                    });
+                }
+            } else {
+                // Si no hay usuario, volver al index
+                window.location.href = "index.html";
+            }
+        });
+
+        // --- INICIALIZAR TABLERO ---
         function initBoard() {
             const boardDiv = document.getElementById('board');
             document.querySelectorAll('.space').forEach(e => e.remove());
@@ -224,10 +317,13 @@
 
         // --- SALA ---
         function crearSala() {
-            myName = document.getElementById('input-nombre').value.trim();
-            if(!myName) return alert("Nombre obligatorio");
+            if(!myName) return alert("Cargando usuario...");
             roomId = Math.floor(1000 + Math.random() * 9000).toString();
-            myId = 'host'; isHost = true;
+            isHost = true;
+            
+            // Guardar en memoria para recargas
+            localStorage.setItem('monopoly_room_id', roomId);
+
             let props = {}; for(let i=0; i<20; i++) props[i] = "";
             db.ref('monopoly/' + roomId).set({
                 status: 'waiting', currentTurn: 0, props: props,
@@ -237,14 +333,29 @@
         }
 
         function unirseSala() {
-            myName = document.getElementById('input-nombre').value.trim();
+            if(!myName) return alert("Cargando usuario...");
             roomId = document.getElementById('input-codigo').value.trim();
-            if(!myName || !roomId) return alert("Faltan datos");
-            myId = 'p_' + Date.now();
+            if(!roomId) return alert("Faltan datos");
+            
+            isHost = false;
+
             db.ref('monopoly/' + roomId).once('value').then(snap => {
                 if(!snap.exists()) return alert("Sala no existe");
-                const count = Object.keys(snap.val().players).length;
+                
+                // Si me uno, guardo en memoria
+                localStorage.setItem('monopoly_room_id', roomId);
+
+                // Si ya estoy en la lista (recarga), no me agrego de nuevo
+                const playersData = snap.val().players || {};
+                if (playersData[myId]) {
+                    mostrarLobby();
+                    return;
+                }
+
+                if(snap.val().status !== 'waiting') return alert("Juego ya iniciado");
+                const count = Object.keys(playersData).length;
                 if(count >= 4) return alert("Sala llena");
+
                 db.ref('monopoly/' + roomId + '/players/' + myId).set({
                     name: myName, money: 1500, pos: 0, color: PLAYER_COLORS[count], isBot: false
                 });
@@ -266,18 +377,24 @@
         function mostrarLobby() {
             document.getElementById('view-login').classList.remove('active');
             document.getElementById('view-waiting').classList.add('active');
+            document.getElementById('view-game').classList.remove('active');
             document.getElementById('lbl-room-id').innerText = roomId;
-            if(isHost) document.getElementById('host-controls').style.display = 'block';
-            else document.getElementById('guest-msg').style.display = 'block';
-
+            
             db.ref('monopoly/' + roomId + '/players').on('value', snap => {
                 const list = document.getElementById('waiting-list');
                 list.innerHTML = "";
                 players = [];
+                let idx = 0;
                 snap.forEach(c => {
                     const p = c.val(); p.id = c.key; players.push(p);
+                    // Recuperar rol de host si soy el primero
+                    if(idx === 0 && p.id === myId) isHost = true;
                     list.innerHTML += `<div class="player-item"><div class="avatar-dot" style="background:${p.color}"></div><b>${p.name}</b> ${p.isBot ? '🤖' : ''}</div>`;
+                    idx++;
                 });
+
+                if(isHost) document.getElementById('host-controls').style.display = 'block';
+                else document.getElementById('guest-msg').style.display = 'block';
             });
 
             db.ref('monopoly/' + roomId + '/status').on('value', snap => {
@@ -287,6 +404,11 @@
 
         function iniciarPartida() {
             db.ref('monopoly/' + roomId).update({ status: 'playing' });
+        }
+
+        function salirDelJuego() {
+            localStorage.removeItem('monopoly_room_id');
+            window.location.href = "index.html";
         }
 
         // --- JUEGO ---
@@ -338,14 +460,11 @@
                     const t = document.createElement('div');
                     t.className = 'token';
                     t.style.backgroundColor = p.color;
-                    
-                    // Posicionamiento preciso
-                    const slot = i % 4; // 0, 1, 2, 3
+                    const slot = i % 4; 
                     if (slot === 0) { t.style.top = '25%'; t.style.left = '25%'; }
                     if (slot === 1) { t.style.top = '25%'; t.style.left = '75%'; }
                     if (slot === 2) { t.style.top = '75%'; t.style.left = '25%'; }
                     if (slot === 3) { t.style.top = '75%'; t.style.left = '75%'; }
-                    
                     space.appendChild(t);
                 }
             });
@@ -410,7 +529,7 @@
                     const val = Math.floor(Math.random() * 6) + 1;
                     btn.innerText = val;
                     moverFichaPasoAPaso(val, botId);
-                    setTimeout(() => botProcessing = false, 4000); // Dar tiempo a la animación de pago
+                    setTimeout(() => botProcessing = false, 4000); 
                 }, 1000);
             }, 1000);
         }
@@ -425,7 +544,6 @@
                 let nuevaPos = currentPos + contador;
                 if(nuevaPos >= 20) {
                     nuevaPos = nuevaPos % 20;
-                    // Vuelta (solo si soy dueño o host para bot)
                     if(pid === myId || (isHost && players[pIdx].isBot)) {
                         let p = players.find(x => x.id === pid);
                         db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(p.money + 200);
@@ -448,17 +566,15 @@
             const player = players.find(p => p.id === pid);
             const currentMoney = player.money;
 
-            // Limpiar zona
             actionZone.innerHTML = "";
 
-            if(pos === 15) { // CÁRCEL
+            if(pos === 15) { 
                 if(isMe) alert("¡A LA CÁRCEL!");
                 db.ref('monopoly/' + roomId + '/players/' + pid).update({ pos: 5 });
                 pasarTurno();
                 return;
             }
 
-            // IMPUESTO (AUTO)
             if(space.type === 'tax') {
                 if(isMe || (player.isBot && isHost)) {
                     pagarBanco(space.rent, pid, "IMPUESTO");
@@ -466,11 +582,9 @@
                 return;
             }
 
-            // PROPIEDAD
             if(space.type === 'prop') {
                 const ownerId = properties[pos];
                 
-                // Sin dueño -> COMPRAR (Manual para humano, Auto para Bot)
                 if(!ownerId || ownerId === "") {
                     if(currentMoney >= space.price) {
                         if(isMe) {
@@ -485,20 +599,17 @@
                             setTimeout(() => comprarPropiedad(pos, space.price, pid), 1000);
                         }
                     } else {
-                        // No alcanza
                         if(isMe) {
                             actionZone.innerHTML = `<span style="color:red; font-weight:bold; background:rgba(0,0,0,0.8); padding:5px; border-radius:5px;">Sin Dinero</span>`;
                             setTimeout(pasarTurno, 1500);
                         } else if(player.isBot && isHost) setTimeout(pasarTurno, 1000);
                     }
                 } 
-                // Con dueño ajeno -> PAGAR AUTO
                 else if(ownerId !== pid) {
                     if(isMe || (player.isBot && isHost)) {
                         pagarRenta(ownerId, space.rent, pid);
                     }
                 } 
-                // Mía
                 else {
                     pasarTurno();
                 }
@@ -506,8 +617,6 @@
                 if(isMe || (player.isBot && isHost)) setTimeout(pasarTurno, 1000);
             }
         }
-
-        // --- TRANSACCIONES CON FEEDBACK ---
 
         function comprarPropiedad(pos, price, pid) {
             let p = players.find(x => x.id === pid);
@@ -519,8 +628,6 @@
         function pagarRenta(ownerId, amount, pid) {
             let p = players.find(x => x.id === pid);
             let owner = players.find(x => x.id === ownerId);
-            
-            // UI Feedback
             const actionZone = document.getElementById('action-zone');
             const nuevoSaldo = p.money - amount;
             
@@ -532,11 +639,9 @@
                 </div>
             `;
 
-            // Ejecutar pago real
             db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(nuevoSaldo);
             db.ref('monopoly/' + roomId + '/players/' + ownerId + '/money').set(owner.money + amount);
             
-            // Esperar para leer y pasar
             setTimeout(() => {
                 actionZone.innerHTML = "";
                 pasarTurno();
@@ -545,8 +650,6 @@
 
         function pagarBanco(amount, pid, motivo) {
             let p = players.find(x => x.id === pid);
-            
-            // UI Feedback
             const actionZone = document.getElementById('action-zone');
             const nuevoSaldo = p.money - amount;
 
@@ -559,7 +662,6 @@
             `;
 
             db.ref('monopoly/' + roomId + '/players/' + pid + '/money').set(nuevoSaldo);
-            
             setTimeout(() => {
                 actionZone.innerHTML = "";
                 pasarTurno();

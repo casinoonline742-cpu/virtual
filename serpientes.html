@@ -170,13 +170,15 @@
 
     <div class="top-bar">
         <span>🐍 SERPIENTES</span>
-        <a href="index.html" class="btn-salir">Salir</a>
+        <a href="#" class="btn-salir" onclick="salirDelJuego()">Salir</a>
     </div>
 
     <div id="view-login" class="view active">
         <div class="lobby-box">
             <h2 style="color:var(--gold)">SALA DE JUEGO</h2>
-            <input type="text" id="input-nombre" placeholder="Tu Apodo">
+            
+            <p style="color:#aaa; font-size:0.9em;">Jugando como: <b id="user-display" style="color:white;">Cargando...</b></p>
+            
             <button class="btn-main" onclick="crearSala()">CREAR PARTIDA</button>
             <div style="margin:15px">--- Ó ---</div>
             <input type="number" id="input-codigo" placeholder="Código de Sala">
@@ -239,10 +241,11 @@
         };
         try { firebase.initializeApp(firebaseConfig); } catch(e) {}
         const db = firebase.database();
+        const auth = firebase.auth();
 
         let myName = "", myId = "", roomId = "", isHost = false;
         let players = [], turnIndex = 0;
-        let gameEnded = false; // Evitar múltiples alertas
+        let gameEnded = false; 
         const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
 
         const MAPA_IMAGEN = {
@@ -250,12 +253,45 @@
             17: 7, 54: 34, 62: 19, 64: 60, 87: 36, 93: 73, 95: 75, 98: 79
         };
 
+        // --- AUTENTICACIÓN Y PERSISTENCIA ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Obtener nombre del correo (antes de la @)
+                myName = user.email.split('@')[0];
+                myId = user.uid; // ID único real de Firebase
+                document.getElementById('user-display').innerText = myName;
+
+                // --- RECONEXIÓN AUTOMÁTICA ---
+                // Verificamos si hay una sala guardada en el navegador
+                const savedRoom = localStorage.getItem('serpientes_room_id');
+                if (savedRoom) {
+                    roomId = savedRoom;
+                    // Verificar si la sala aún existe en Firebase
+                    db.ref('serpientes/' + roomId).once('value').then(snap => {
+                        if(snap.exists()) {
+                            // Si existe, nos reconectamos
+                            mostrarLobby();
+                        } else {
+                            // Si ya no existe (borrada), limpiamos memoria
+                            localStorage.removeItem('serpientes_room_id');
+                        }
+                    });
+                }
+
+            } else {
+                // Si no hay usuario logueado, volver al index
+                window.location.href = "index.html";
+            }
+        });
+
         // --- SALA ---
         function crearSala() {
-            myName = document.getElementById('input-nombre').value.trim();
-            if(!myName) return alert("Nombre requerido");
+            if(!myName) return alert("Cargando usuario...");
             roomId = Math.floor(1000 + Math.random() * 9000).toString();
-            myId = 'host'; isHost = true;
+            isHost = true;
+
+            // Guardar en memoria para recargas
+            localStorage.setItem('serpientes_room_id', roomId);
 
             db.ref('serpientes/' + roomId).set({
                 status: 'waiting',
@@ -266,15 +302,28 @@
         }
 
         function unirseSala() {
-            myName = document.getElementById('input-nombre').value.trim();
+            if(!myName) return alert("Cargando usuario...");
             roomId = document.getElementById('input-codigo').value.trim();
-            if(!myName || !roomId) return alert("Datos incompletos");
-            myId = 'p_' + Date.now();
+            if(!roomId) return alert("Ingresa el código de sala");
+            
+            isHost = false;
 
             db.ref('serpientes/' + roomId).once('value').then(snap => {
                 if(!snap.exists()) return alert("Sala no existe");
+                
+                // Si me uno, guardo en memoria
+                localStorage.setItem('serpientes_room_id', roomId);
+
+                const playersData = snap.val().players || {};
+                
+                // Si ya estoy en la lista (por recarga anterior), solo entro
+                if (playersData[myId]) {
+                    mostrarLobby();
+                    return;
+                }
+
                 if(snap.val().status !== 'waiting') return alert("Juego ya iniciado");
-                const count = Object.keys(snap.val().players || {}).length;
+                const count = Object.keys(playersData).length;
                 if(count >= 6) return alert("Sala llena");
 
                 db.ref('serpientes/' + roomId + '/players/' + myId).set({
@@ -300,29 +349,32 @@
             document.getElementById('view-waiting').classList.add('active');
             document.getElementById('view-game').classList.remove('active'); 
             document.getElementById('lbl-room-id').innerText = roomId;
-            document.getElementById('win-modal').style.display = 'none'; // Asegurar oculto
+            document.getElementById('win-modal').style.display = 'none'; 
             gameEnded = false;
-
-            if(isHost) document.getElementById('host-controls').style.display = 'block';
-            else document.getElementById('guest-msg').style.display = 'block';
 
             db.ref('serpientes/' + roomId + '/players').on('value', snap => {
                 const list = document.getElementById('waiting-list');
                 list.innerHTML = "";
                 players = [];
+                let idx = 0;
                 snap.forEach(c => {
                     const p = c.val(); p.id = c.key; players.push(p);
+                    // Lógica simple: el primer jugador de la lista es el host
+                    if(idx === 0 && p.id === myId) isHost = true;
+                    
                     list.innerHTML += `<div class="player-item"><div class="avatar-dot" style="background:${p.color}"></div><b>${p.name}</b></div>`;
+                    idx++;
                 });
+
+                if(isHost) document.getElementById('host-controls').style.display = 'block';
+                else document.getElementById('guest-msg').style.display = 'block';
             });
 
-            // ESCUCHAR ESTADO: Si cambia a 'playing', entramos. Si cambia a 'waiting', volvemos.
             db.ref('serpientes/' + roomId + '/status').on('value', snap => {
                 const status = snap.val();
                 if(status === 'playing') {
                     iniciarJuegoUI();
                 } else if (status === 'waiting') {
-                    // Volver al lobby
                     document.getElementById('view-game').classList.remove('active');
                     document.getElementById('view-waiting').classList.add('active');
                     document.getElementById('win-modal').style.display = 'none';
@@ -336,22 +388,22 @@
             db.ref('serpientes/' + roomId).update({ status: 'playing' });
         }
 
-        // --- BOTÓN FINAL "VOLVER AL LOBBY" ---
         function volverAlLobby() {
-            // Cierra modal localmente
             document.getElementById('win-modal').style.display = 'none';
-            
-            // Si soy host, reinicio la DB para todos. 
-            // Si soy invitado, simplemente espero a que el listener de 'status' me lleve.
             if(isHost) {
                 let updates = { status: 'waiting', currentTurn: 0 };
                 players.forEach(p => updates['players/' + p.id + '/pos'] = 0);
                 db.ref('serpientes/' + roomId).update(updates);
             } else {
-                // Cambio visual inmediato para el invitado (opcional, el listener lo haría igual)
                 document.getElementById('view-game').classList.remove('active');
                 document.getElementById('view-waiting').classList.add('active');
             }
+        }
+
+        // Función para el botón Salir (limpia memoria)
+        function salirDelJuego() {
+            localStorage.removeItem('serpientes_room_id');
+            window.location.href = "index.html";
         }
 
         // --- JUEGO ---
@@ -378,7 +430,6 @@
                 players = [];
                 Object.keys(data.players).forEach(k => {
                     let p = data.players[k]; p.id = k; players.push(p);
-                    // Detección automática de ganador en todos los clientes
                     if (p.pos === 100 && !gameEnded) {
                         gameEnded = true;
                         mostrarPantallaVictoria(p.name);
@@ -451,7 +502,6 @@
             if(pos !== 100) {
                 finalizarTurno();
             }
-            // Si es 100, el listener global activará el modal
         }
 
         function mostrarPantallaVictoria(nombreGanador) {
@@ -530,7 +580,6 @@
                 txt.style.color = "#00e676";
                 btn.style.opacity = 1; btn.style.pointerEvents = 'all';
                 
-                // SONIDO
                 const audio = document.getElementById('whistle-sound');
                 if(audio) audio.play().catch(e => console.log(e));
                 if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
