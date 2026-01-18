@@ -35,7 +35,7 @@
         .view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
         .active { display: flex; }
 
-        /* VISTA JUEGO: PERMITE SCROLL SI EL CELULAR ES MUY PEQUEÑO */
+        /* VISTA JUEGO */
         #view-game {
             justify-content: flex-start;
             overflow-y: auto;
@@ -59,7 +59,7 @@
             background-size: 100% 100%;
             border-radius: 5px; 
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            flex-shrink: 0; /* No encoger el tablero */
+            flex-shrink: 0;
         }
 
         .board-grid {
@@ -91,14 +91,14 @@
             left: auto !important; top: auto !important;
         }
 
-        /* --- CUADRO DE JUGADORES (NUEVO DISEÑO) --- */
+        /* PANEL JUGADORES */
         .players-panel-box {
             width: 90%; max-width: 500px;
             background: var(--panel-bg);
             border: 1px solid #333;
             border-radius: 12px;
             padding: 15px;
-            margin: 10px auto 80px auto; /* Margen inferior grande para no tapar con el dado */
+            margin: 10px auto 80px auto;
             box-sizing: border-box;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
@@ -109,9 +109,7 @@
             display: flex; justify-content: space-between; align-items: center;
         }
 
-        .players-grid {
-            display: flex; flex-wrap: wrap; gap: 10px;
-        }
+        .players-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 
         .p-card { 
             background: #2a2a2a; padding: 8px 12px; border-radius: 8px; 
@@ -122,24 +120,19 @@
         }
         
         .p-card.active-turn { 
-            border: 1px solid var(--gold); 
-            background: #333; color: white;
+            border: 1px solid var(--gold); background: #333; color: white;
             box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
         }
         
-        .avatar-dot { 
-            width: 12px; height: 12px; border-radius: 50%; 
-            border: 2px solid rgba(255,255,255,0.2);
-        }
+        .avatar-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); }
 
-        /* INFORMACIÓN DE TURNO (Encima del panel) */
         .turn-display {
             text-align: center; color: var(--gold); 
             font-size: 1.2em; font-weight: bold; margin-top: 5px;
             text-shadow: 0 2px 2px black;
         }
 
-        /* DADO FLOTANTE */
+        /* DADO */
         .dice-area { position: fixed; bottom: 30px; right: 20px; z-index: 100; }
         .dice-box { 
             width: 70px; height: 70px; background: white; color: black; 
@@ -150,7 +143,7 @@
         .dice-box:active { transform: scale(0.9); }
         .dice-anim { animation: shake 0.5s infinite; background: #ffffcc; }
 
-        /* LISTA ESPERA LOBBY */
+        /* LISTA ESPERA */
         .waiting-list { width: 90%; background: #111; padding: 10px; border-radius: 10px; margin: 20px 0; }
         .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
 
@@ -204,7 +197,6 @@
     </div>
 
     <div id="view-game" class="view">
-        
         <div class="game-area" id="board-container">
             <div id="board-grid" class="board-grid"></div>
             <div id="start-zone" class="start-zone"></div>
@@ -223,7 +215,6 @@
         <div class="dice-area">
             <div id="dice-btn" class="dice-box" onclick="lanzarDadoHumano()">🎲</div>
         </div>
-
     </div>
 
     <div id="win-modal">
@@ -231,7 +222,8 @@
             <div class="trophy">🏆</div>
             <h2 style="color:var(--gold); margin:0;">¡GANADOR!</h2>
             <h3 id="winner-name" style="color:white; margin:10px 0 30px 0; font-size:1.5em;">...</h3>
-            <button class="btn-main" onclick="window.location.href='index.html'">ACEPTAR</button>
+            
+            <button class="btn-main" onclick="volverAlLobby()">VOLVER AL LOBBY</button>
         </div>
     </div>
 
@@ -250,9 +242,9 @@
 
         let myName = "", myId = "", roomId = "", isHost = false;
         let players = [], turnIndex = 0;
+        let gameEnded = false; // Evitar múltiples alertas
         const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
 
-        // --- MAPA EXACTO ---
         const MAPA_IMAGEN = {
             1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 51: 67, 72: 91, 80: 99,
             17: 7, 54: 34, 62: 19, 64: 60, 87: 36, 93: 73, 95: 75, 98: 79
@@ -306,7 +298,11 @@
         function mostrarLobby() {
             document.getElementById('view-login').classList.remove('active');
             document.getElementById('view-waiting').classList.add('active');
+            document.getElementById('view-game').classList.remove('active'); 
             document.getElementById('lbl-room-id').innerText = roomId;
+            document.getElementById('win-modal').style.display = 'none'; // Asegurar oculto
+            gameEnded = false;
+
             if(isHost) document.getElementById('host-controls').style.display = 'block';
             else document.getElementById('guest-msg').style.display = 'block';
 
@@ -320,14 +316,42 @@
                 });
             });
 
+            // ESCUCHAR ESTADO: Si cambia a 'playing', entramos. Si cambia a 'waiting', volvemos.
             db.ref('serpientes/' + roomId + '/status').on('value', snap => {
-                if(snap.val() === 'playing') iniciarJuegoUI();
+                const status = snap.val();
+                if(status === 'playing') {
+                    iniciarJuegoUI();
+                } else if (status === 'waiting') {
+                    // Volver al lobby
+                    document.getElementById('view-game').classList.remove('active');
+                    document.getElementById('view-waiting').classList.add('active');
+                    document.getElementById('win-modal').style.display = 'none';
+                    gameEnded = false;
+                }
             });
         }
 
         function iniciarPartida() {
             if(players.length < 2) return alert("Mínimo 2 jugadores.");
             db.ref('serpientes/' + roomId).update({ status: 'playing' });
+        }
+
+        // --- BOTÓN FINAL "VOLVER AL LOBBY" ---
+        function volverAlLobby() {
+            // Cierra modal localmente
+            document.getElementById('win-modal').style.display = 'none';
+            
+            // Si soy host, reinicio la DB para todos. 
+            // Si soy invitado, simplemente espero a que el listener de 'status' me lleve.
+            if(isHost) {
+                let updates = { status: 'waiting', currentTurn: 0 };
+                players.forEach(p => updates['players/' + p.id + '/pos'] = 0);
+                db.ref('serpientes/' + roomId).update(updates);
+            } else {
+                // Cambio visual inmediato para el invitado (opcional, el listener lo haría igual)
+                document.getElementById('view-game').classList.remove('active');
+                document.getElementById('view-waiting').classList.add('active');
+            }
         }
 
         // --- JUEGO ---
@@ -354,13 +378,18 @@
                 players = [];
                 Object.keys(data.players).forEach(k => {
                     let p = data.players[k]; p.id = k; players.push(p);
+                    // Detección automática de ganador en todos los clientes
+                    if (p.pos === 100 && !gameEnded) {
+                        gameEnded = true;
+                        mostrarPantallaVictoria(p.name);
+                    }
                 });
                 
                 turnIndex = data.currentTurn || 0;
                 actualizarFichasUI();
                 actualizarUIInfo();
 
-                if(isHost && data.status === 'playing') {
+                if(isHost && data.status === 'playing' && !gameEnded) {
                     const curr = players[turnIndex];
                     if(curr && curr.isBot) procesarBot(curr.id);
                 }
@@ -369,6 +398,7 @@
 
         // --- MOVIMIENTO ---
         function lanzarDadoHumano() {
+            if(gameEnded) return;
             const btn = document.getElementById('dice-btn');
             btn.classList.add('dice-anim');
             btn.style.pointerEvents = 'none'; 
@@ -411,19 +441,17 @@
                 let destino = MAPA_IMAGEN[pos];
                 db.ref('serpientes/' + roomId + '/players/' + pid).update({ pos: destino });
                 if(navigator.vibrate) navigator.vibrate([100,50,100]);
-                setTimeout(() => verificarVictoria(pid, destino), 800);
+                setTimeout(() => verificarFinal(pid, destino), 800);
             } else {
-                verificarVictoria(pid, pos);
+                verificarFinal(pid, pos);
             }
         }
 
-        function verificarVictoria(pid, pos) {
-            if(pos === 100) {
-                let p = players.find(x => x.id === pid);
-                mostrarPantallaVictoria(p.name);
-            } else {
+        function verificarFinal(pid, pos) {
+            if(pos !== 100) {
                 finalizarTurno();
             }
+            // Si es 100, el listener global activará el modal
         }
 
         function mostrarPantallaVictoria(nombreGanador) {
@@ -440,7 +468,7 @@
         // --- BOT ---
         let botBusy = false;
         function procesarBot(botId) {
-            if(botBusy) return;
+            if(botBusy || gameEnded) return;
             botBusy = true;
             setTimeout(() => {
                 const btn = document.getElementById('dice-btn');
@@ -456,7 +484,7 @@
             }, 1000);
         }
 
-        // --- RENDERIZADO ---
+        // --- RENDER ---
         function actualizarFichasUI() {
             document.querySelectorAll('.token').forEach(e => e.remove());
             players.forEach((p, i) => {
@@ -497,7 +525,7 @@
                     </div>`;
             });
 
-            if(curr.id === myId) {
+            if(curr.id === myId && !gameEnded) {
                 txt.innerText = "¡TU TURNO!";
                 txt.style.color = "#00e676";
                 btn.style.opacity = 1; btn.style.pointerEvents = 'all';
