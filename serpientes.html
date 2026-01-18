@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Serpientes y Escaleras - Oficial</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #121212;
+            --gold: #FFD700;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white; font-family: 'Segoe UI', sans-serif;
+            margin: 0; padding: 0;
+            height: 100vh; display: flex; flex-direction: column;
+            overflow: hidden; user-select: none;
+        }
+
+        /* HEADER */
+        .top-bar {
+            background: #000; padding: 10px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--gold); height: 50px; box-sizing: border-box;
+        }
+        .btn-salir { color: #aaa; text-decoration: none; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; }
+
+        /* VISTAS */
+        .view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
+        .active { display: flex; }
+
+        /* LOBBY */
+        .lobby-box { background: #222; padding: 30px; border-radius: 15px; text-align: center; width: 80%; max-width: 400px; border: 1px solid #444; }
+        input { width: 80%; padding: 10px; margin: 10px 0; text-align: center; font-size: 1.2em; border-radius: 5px; background: #111; color: white; border: 1px solid var(--gold); }
+        .btn-main { background: var(--gold); color: black; border: none; padding: 12px 30px; font-weight: bold; border-radius: 25px; cursor: pointer; margin-top: 10px; width: 100%; }
+        .btn-sec { background: #333; color: white; border: 1px solid #555; }
+        .btn-bot { background: #2c3e50; color: #3498db; border: 1px solid #3498db; margin-top: 5px; width: 100%; padding: 10px; border-radius: 25px; cursor: pointer; font-weight: bold; }
+
+        /* TABLERO */
+        .game-area { 
+            position: relative; 
+            width: 100%; max-width: 500px; 
+            aspect-ratio: 1/1; 
+            margin: 10px auto; 
+            background-image: url('tablero.jpg'); 
+            background-size: 100% 100%;
+            border-radius: 5px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            width: 100%; height: 100%;
+        }
+
+        .cell { border: none; position: relative; }
+
+        /* ZONA DE INICIO (Fuera del tablero) */
+        .start-zone {
+            position: absolute;
+            bottom: -40px;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        /* FICHAS */
+        .token {
+            width: 6%; height: 6%; 
+            border-radius: 50%;
+            position: absolute; z-index: 20;
+            transition: all 0.3s ease-out; 
+            box-shadow: 1px 1px 4px rgba(0,0,0,0.9);
+            border: 2px solid white;
+            transform: translate(-50%, -50%);
+        }
+        
+        .token.waiting {
+            position: relative;
+            transform: none;
+            width: 25px; height: 25px;
+            left: auto !important; top: auto !important;
+        }
+
+        /* UI INFERIOR */
+        .bottom-panel { width: 100%; background: #111; padding: 10px; box-sizing: border-box; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+        .turn-info { text-align: center; margin-bottom: 5px; color: var(--gold); font-size: 1.1em; font-weight: bold; }
+        
+        /* DADO */
+        .dice-area { position: fixed; bottom: 100px; right: 20px; z-index: 100; }
+        .dice-box { 
+            width: 65px; height: 65px; background: white; color: black; 
+            font-size: 2.2em; font-weight: bold; display: flex; align-items: center; justify-content: center; 
+            border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 0 0 3px var(--gold);
+            cursor: pointer; transition: transform 0.1s;
+        }
+        .dice-box:active { transform: scale(0.9); }
+        .dice-anim { animation: shake 0.5s infinite; background: #ffffcc; }
+
+        /* JUGADORES */
+        .players-bar { display: flex; gap: 10px; overflow-x: auto; padding: 10px; width: 100%; justify-content: center; background: #0a0a0a; border-top: 1px solid #333; }
+        .p-card { background: #222; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; font-size: 0.8em; min-width: max-content; opacity: 0.5; color: #fff; }
+        .p-card.active-turn { opacity: 1; border: 1px solid var(--gold); background: #444; transform: scale(1.05); }
+        .avatar-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+        .waiting-list { width: 90%; background: #111; padding: 10px; border-radius: 10px; margin: 20px 0; }
+        .player-item { padding: 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
+
+        @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-15deg); } 100% { transform: rotate(0deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <span>🐍 SERPIENTES Y ESCALERAS</span>
+        <a href="index.html" class="btn-salir">Salir</a>
+    </div>
+
+    <div id="view-login" class="view active">
+        <div class="lobby-box">
+            <h2 style="color:var(--gold)">SALA DE JUEGO</h2>
+            <input type="text" id="input-nombre" placeholder="Tu Apodo">
+            <button class="btn-main" onclick="crearSala()">CREAR PARTIDA</button>
+            <div style="margin:15px">--- Ó ---</div>
+            <input type="number" id="input-codigo" placeholder="Código de Sala">
+            <button class="btn-main btn-sec" onclick="unirseSala()">UNIRSE</button>
+        </div>
+    </div>
+
+    <div id="view-waiting" class="view">
+        <h2 style="color:var(--gold)">SALA: <span id="lbl-room-id">...</span></h2>
+        <p>Esperando jugadores...</p>
+        <div id="waiting-list" class="waiting-list"></div>
+        
+        <div id="host-controls" style="display:none; width: 80%;">
+            <button class="btn-bot" onclick="agregarBot()">+ AÑADIR BOT 🤖</button>
+            <button class="btn-main" onclick="iniciarPartida()">INICIAR JUEGO</button>
+        </div>
+        <div id="guest-msg" style="display:none; color:#aaa; font-style: italic;">Esperando al anfitrión...</div>
+    </div>
+
+    <div id="view-game" class="view" style="justify-content: flex-start;">
+        <div class="game-area" id="board-container">
+            <div id="board-grid" class="board-grid"></div>
+            <div id="start-zone" class="start-zone"></div>
+        </div>
+
+        <div class="bottom-panel">
+            <div id="turn-text" class="turn-info">...</div>
+            <div class="dice-area"><div id="dice-btn" class="dice-box" onclick="lanzarDadoHumano()">🎲</div></div>
+            <div id="ingame-players" class="players-bar"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
+            authDomain: "casino-familia.firebaseapp.com",
+            databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+            projectId: "casino-familia",
+            storageBucket: "casino-familia.firebasestorage.app",
+            messagingSenderId: "390973825874",
+            appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+        };
+        try { firebase.initializeApp(firebaseConfig); } catch(e) {}
+        const db = firebase.database();
+
+        let myName = "", myId = "", roomId = "", isHost = false;
+        let players = [], turnIndex = 0;
+        const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
+
+        // --- MAPA EXACTO ACTUALIZADO ---
+        const MAPA_IMAGEN = {
+            // ESCALERAS (Origen: Destino)
+            1: 38,
+            4: 14,
+            9: 31,
+            21: 42,
+            28: 84,
+            51: 67,
+            72: 91,
+            80: 99,
+
+            // SERPIENTES (Origen: Destino)
+            17: 7,
+            54: 34,
+            62: 19,
+            64: 60,
+            87: 36,
+            93: 73,
+            95: 75,
+            98: 79
+        };
+
+        // --- FUNCIONES SALA ---
+        function crearSala() {
+            myName = document.getElementById('input-nombre').value.trim();
+            if(!myName) return alert("Nombre requerido");
+            roomId = Math.floor(1000 + Math.random() * 9000).toString();
+            myId = 'host'; isHost = true;
+
+            db.ref('serpientes/' + roomId).set({
+                status: 'waiting',
+                currentTurn: 0,
+                // INICIO EN 0 (Fuera del tablero)
+                players: { [myId]: { name: myName, pos: 0, color: COLORS[0], isBot: false } }
+            });
+            mostrarLobby();
+        }
+
+        function unirseSala() {
+            myName = document.getElementById('input-nombre').value.trim();
+            roomId = document.getElementById('input-codigo').value.trim();
+            if(!myName || !roomId) return alert("Datos incompletos");
+            myId = 'p_' + Date.now();
+
+            db.ref('serpientes/' + roomId).once('value').then(snap => {
+                if(!snap.exists()) return alert("Sala no existe");
+                if(snap.val().status !== 'waiting') return alert("Juego ya iniciado");
+                const count = Object.keys(snap.val().players || {}).length;
+                if(count >= 6) return alert("Sala llena");
+
+                db.ref('serpientes/' + roomId + '/players/' + myId).set({
+                    name: myName, pos: 0, color: COLORS[count], isBot: false
+                });
+                mostrarLobby();
+            });
+        }
+
+        function agregarBot() {
+            db.ref('serpientes/' + roomId + '/players').once('value').then(snap => {
+                const count = Object.keys(snap.val() || {}).length;
+                if(count >= 6) return alert("Lleno");
+                const botId = 'bot_' + Date.now();
+                db.ref('serpientes/' + roomId + '/players/' + botId).set({
+                    name: "Bot " + (count), pos: 0, color: COLORS[count], isBot: true
+                });
+            });
+        }
+
+        function mostrarLobby() {
+            document.getElementById('view-login').classList.remove('active');
+            document.getElementById('view-waiting').classList.add('active');
+            document.getElementById('lbl-room-id').innerText = roomId;
+            if(isHost) document.getElementById('host-controls').style.display = 'block';
+            else document.getElementById('guest-msg').style.display = 'block';
+
+            db.ref('serpientes/' + roomId + '/players').on('value', snap => {
+                const list = document.getElementById('waiting-list');
+                list.innerHTML = "";
+                players = [];
+                snap.forEach(c => {
+                    const p = c.val(); p.id = c.key; players.push(p);
+                    list.innerHTML += `<div class="player-item"><div class="avatar-dot" style="background:${p.color}"></div><b>${p.name}</b></div>`;
+                });
+            });
+
+            db.ref('serpientes/' + roomId + '/status').on('value', snap => {
+                if(snap.val() === 'playing') iniciarJuegoUI();
+            });
+        }
+
+        function iniciarPartida() {
+            if(players.length < 2) return alert("Mínimo 2 jugadores.");
+            db.ref('serpientes/' + roomId).update({ status: 'playing' });
+        }
+
+        // --- LÓGICA DE JUEGO ---
+        function iniciarJuegoUI() {
+            document.getElementById('view-waiting').classList.remove('active');
+            document.getElementById('view-game').classList.add('active');
+            
+            const grid = document.getElementById('board-grid');
+            grid.innerHTML = "";
+            // Generar grilla visual (invisible pero estructural)
+            for(let row=9; row>=0; row--) {
+                const isEven = (row % 2 === 0);
+                for(let col=0; col<10; col++) {
+                    const num = isEven ? (row*10)+col+1 : (row*10)+(10-col);
+                    const div = document.createElement('div');
+                    div.className = 'cell'; div.id = 'cell-'+num;
+                    grid.appendChild(div);
+                }
+            }
+
+            db.ref('serpientes/' + roomId).on('value', snap => {
+                const data = snap.val();
+                if(!data) return;
+                
+                players = [];
+                Object.keys(data.players).forEach(k => {
+                    let p = data.players[k]; p.id = k; players.push(p);
+                });
+                
+                turnIndex = data.currentTurn || 0;
+                actualizarFichasUI();
+                actualizarUIInfo();
+
+                if(isHost && data.status === 'playing') {
+                    const curr = players[turnIndex];
+                    if(curr && curr.isBot) procesarBot(curr.id);
+                }
+            });
+        }
+
+        // --- MOVIMIENTO ---
+        function lanzarDadoHumano() {
+            const btn = document.getElementById('dice-btn');
+            btn.classList.add('dice-anim');
+            btn.style.pointerEvents = 'none'; 
+            
+            setTimeout(() => {
+                btn.classList.remove('dice-anim');
+                const val = Math.floor(Math.random()*6)+1;
+                btn.innerText = val;
+                moverFichaPasoAPaso(val, myId);
+            }, 500);
+        }
+
+        function moverFichaPasoAPaso(pasos, pid) {
+            let pIdx = players.findIndex(p => p.id === pid);
+            let currentPos = players[pIdx].pos;
+            let targetPos = currentPos + pasos;
+
+            if(targetPos > 100) {
+                // Si te pasas, pierdes turno (no te mueves)
+                setTimeout(() => finalizarTurno(), 1000);
+                return;
+            }
+
+            let contador = 0;
+            let intervalo = setInterval(() => {
+                contador++;
+                let nuevaPos = currentPos + contador;
+                
+                db.ref('serpientes/' + roomId + '/players/' + pid).update({ pos: nuevaPos });
+                if(navigator.vibrate) navigator.vibrate(30);
+
+                if(contador >= pasos) {
+                    clearInterval(intervalo);
+                    setTimeout(() => verificarCasilla(pid, nuevaPos), 500);
+                }
+            }, 400); 
+        }
+
+        function verificarCasilla(pid, pos) {
+            if(MAPA_IMAGEN[pos]) {
+                let destino = MAPA_IMAGEN[pos];
+                // Efecto de movimiento
+                db.ref('serpientes/' + roomId + '/players/' + pid).update({ pos: destino });
+                if(navigator.vibrate) navigator.vibrate([100,50,100]);
+                setTimeout(() => verificarVictoria(pid, destino), 800);
+            } else {
+                verificarVictoria(pid, pos);
+            }
+        }
+
+        function verificarVictoria(pid, pos) {
+            if(pos === 100) {
+                let p = players.find(x => x.id === pid);
+                alert("🎉 ¡" + p.name + " GANÓ! 🎉");
+            } else {
+                finalizarTurno();
+            }
+        }
+
+        function finalizarTurno() {
+            let next = (turnIndex + 1) % players.length;
+            db.ref('serpientes/' + roomId).update({ currentTurn: next });
+        }
+
+        // --- BOT ---
+        let botBusy = false;
+        function procesarBot(botId) {
+            if(botBusy) return;
+            botBusy = true;
+            setTimeout(() => {
+                const btn = document.getElementById('dice-btn');
+                btn.innerText = "🤖";
+                btn.classList.add('dice-anim');
+                setTimeout(() => {
+                    btn.classList.remove('dice-anim');
+                    const val = Math.floor(Math.random()*6)+1;
+                    btn.innerText = val;
+                    moverFichaPasoAPaso(val, botId);
+                    setTimeout(() => botBusy = false, (val * 400) + 2000); 
+                }, 1000);
+            }, 1000);
+        }
+
+        // --- RENDERIZADO ---
+        function actualizarFichasUI() {
+            document.querySelectorAll('.token').forEach(e => e.remove());
+
+            players.forEach((p, i) => {
+                // Si pos == 0, se pinta en la zona de espera
+                if (p.pos === 0) {
+                    const startZone = document.getElementById('start-zone');
+                    const t = document.createElement('div');
+                    t.className = 'token waiting';
+                    t.style.backgroundColor = p.color;
+                    startZone.appendChild(t);
+                    return;
+                }
+
+                // Si pos > 0, se busca la celda
+                const cell = document.getElementById('cell-'+p.pos);
+                if(cell) {
+                    const t = document.createElement('div');
+                    t.className = 'token';
+                    t.style.backgroundColor = p.color;
+                    
+                    const offX = (i % 3) * 6 - 6; 
+                    const offY = Math.floor(i / 3) * 6 - 3;
+                    
+                    t.style.left = (cell.offsetLeft + cell.offsetWidth/2 + offX) + 'px';
+                    t.style.top = (cell.offsetTop + cell.offsetHeight/2 + offY) + 'px';
+                    
+                    document.getElementById('board-container').appendChild(t);
+                }
+            });
+        }
+
+        function actualizarUIInfo() {
+            if(!players.length) return;
+            const curr = players[turnIndex];
+            const btn = document.getElementById('dice-btn');
+            const txt = document.getElementById('turn-text');
+            const bar = document.getElementById('ingame-players');
+
+            bar.innerHTML = "";
+            players.forEach((p, i) => {
+                bar.innerHTML += `<div class="p-card ${i===turnIndex?'active-turn':''}"><div class="avatar-dot" style="background:${p.color}"></div>${p.name}</div>`;
+            });
+
+            if(curr.id === myId) {
+                txt.innerText = "¡TU TURNO!";
+                txt.style.color = "#00e676";
+                btn.style.opacity = 1; btn.style.pointerEvents = 'all';
+            } else {
+                txt.innerText = `Turno de: ${curr.name}`;
+                txt.style.color = "#aaa";
+                btn.style.opacity = 0.4; btn.style.pointerEvents = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
