@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cine Mudo - Time Attack</title>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --clapper-black: #0d0d0d;
+            --chalk-white: #f0f0f0;
+            --green: #00e676;
+            --red: #ff5252;
+            --gold: #FFD700;
+            --blue: #2979ff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Courier Prime', monospace;
+            color: var(--chalk-white);
+            margin: 0; padding: 0;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            user-select: none;
+        }
+
+        /* --- PANTALLA GIRO --- */
+        #rotate-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+        }
+        .rotate-icon { font-size: 4em; animation: spin 2s infinite; margin-bottom: 20px; }
+        @media screen and (orientation: portrait) {
+            #rotate-overlay { display: flex; }
+            #main-app { display: none !important; }
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 25% { transform: rotate(-90deg); } 100% { transform: rotate(-90deg); } }
+
+        /* --- APP --- */
+        #main-app { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+        .top-bar {
+            background: #000; padding: 5px 20px; 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid #333; height: 40px; flex-shrink: 0;
+        }
+        .btn-salir { color: #aaa; text-decoration: none; border: 1px solid #333; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; }
+
+        .stage {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 10px; position: relative;
+        }
+
+        .clapperboard {
+            width: 90%; max-width: 800px; height: 90%;
+            background: var(--clapper-black);
+            border: 4px solid #333; border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.7);
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+        }
+
+        .clapper-strip {
+            height: 40px; width: 100%;
+            background: repeating-linear-gradient(135deg, #fff, #fff 30px, #111 30px, #111 60px);
+            border-bottom: 4px solid #fff;
+        }
+
+        .clapper-body { flex: 1; padding: 15px; display: flex; flex-direction: column; position: relative; }
+
+        .info-header {
+            display: flex; justify-content: space-between; 
+            font-size: 1.1em; color: #777; border-bottom: 1px solid #333;
+            padding-bottom: 5px; margin-bottom: 10px;
+        }
+
+        /* GRILLA */
+        .script-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            height: 100%; position: relative; padding-bottom: 60px;
+        }
+
+        .script-card {
+            background: #222; border: 2px dashed #444; border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: grab; transition: all 0.2s; position: relative;
+            padding: 5px; text-align: center; touch-action: none;
+        }
+
+        /* Estados */
+        .script-card.locked { opacity: 0.6; pointer-events: none; border-style: solid; filter: grayscale(0.5); }
+        .script-card.success { border-color: var(--green); background: rgba(0, 230, 118, 0.1); color: var(--green); opacity: 1; filter: none;}
+        .script-card.fail { border-color: var(--red); background: rgba(255, 82, 82, 0.1); color: var(--red); text-decoration: line-through; opacity: 1; filter: none;}
+        .script-card.undefined { border-color: var(--blue); background: rgba(41, 121, 255, 0.15); animation: pulse-border 1.5s infinite; }
+        
+        .script-card.dragging { opacity: 0.5; border: 2px solid var(--gold); transform: scale(0.9); }
+        .script-card.drag-over { background: #333; border: 2px dashed var(--gold); transform: scale(1.05); }
+
+        .card-number { position: absolute; top: 5px; left: 5px; font-size: 0.7em; color: #555; font-weight: bold; }
+        .card-points { position: absolute; top: 5px; right: 5px; font-size: 0.7em; background: #000; padding: 2px 5px; border-radius: 4px; }
+        .card-title { font-size: 0.8em; color: #aaa; margin-bottom: 5px; text-transform: uppercase; }
+        .card-word { font-size: 1em; font-weight: bold; word-break: break-word; line-height: 1.2; padding-top: 15px; padding-bottom: 15px;}
+
+        /* BOTÓN DE CAMBIO EN LA CARTA */
+        .card-reroll {
+            position: absolute; bottom: 5px; width: 80%;
+            background: #333; color: var(--gold); border: 1px solid var(--gold);
+            border-radius: 15px; font-size: 0.7em; padding: 3px 0;
+            cursor: pointer; z-index: 5;
+        }
+        .card-reroll:active { transform: scale(0.95); background:black; }
+
+        /* BOTÓN DE INICIO */
+        .start-container {
+            position: absolute; bottom: 15px; left: 0; width: 100%;
+            display: flex; justify-content: center; pointer-events: none;
+        }
+        .btn-action-start {
+            pointer-events: all;
+            background: linear-gradient(135deg, var(--gold), #ffb300);
+            color: black; border: none; padding: 12px 40px;
+            font-size: 1.3em; font-weight: bold; border-radius: 50px;
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+            cursor: pointer; font-family: inherit;
+            animation: pulse-btn 2s infinite; transition: transform 0.1s;
+        }
+        .btn-action-start:active { transform: scale(0.95); }
+        .btn-action-start:disabled { background: #333; color: #777; box-shadow: none; animation: none; cursor: not-allowed; }
+
+        /* JUEGO ACTIVO (ZOOM) */
+        .active-play-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 50;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        
+        .big-word { font-size: 3.5em; font-weight: bold; color: white; margin-bottom: 20px; text-shadow: 0 0 20px rgba(255,255,255,0.5); text-align: center; padding: 0 20px;}
+        
+        /* TIMER Y TIEMPO EXTRA */
+        .timer-container { width: 70%; height: 30px; background: #333; border-radius: 15px; overflow: hidden; margin-bottom: 10px; border: 2px solid #555; position: relative;}
+        .timer-fill { height: 100%; width: 100%; background: var(--green); transition: width 0.1s linear; }
+        .timer-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; text-shadow: 1px 1px 2px black; font-size: 1.2em; }
+        
+        .time-bonus { 
+            color: var(--green); font-size: 1.5em; font-weight: bold; 
+            position: absolute; top: 20%; right: 10%; 
+            animation: floatUp 1s forwards; 
+        }
+
+        .action-hint { color: #aaa; font-size: 1.2em; margin-top: 20px; animation: blink 1s infinite; }
+
+        /* OVERLAYS */
+        .overlay-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10,10,10,0.98); z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .btn-gold {
+            background: var(--gold); color: black; border: none; padding: 15px 40px;
+            font-size: 1.5em; font-weight: bold; border-radius: 5px; cursor: pointer;
+            font-family: 'Courier Prime', monospace; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        }
+        .count-num { font-size: 10em; font-weight: bold; color: white; }
+
+        /* MODAL */
+        .modal-choice {
+            background: #222; padding: 30px; border: 2px solid white; border-radius: 10px;
+            display: flex; gap: 20px;
+        }
+        .btn-opt {
+            padding: 20px; border: 1px solid #555; background: black; color: white;
+            cursor: pointer; font-family: inherit; font-size: 1.2em; border-radius: 5px;
+        }
+        .opt-easy { border-bottom: 4px solid var(--green); }
+        .opt-med { border-bottom: 4px solid var(--gold); }
+        .opt-hard { border-bottom: 4px solid var(--red); }
+
+        @keyframes pulse-btn { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes pulse-border { 0% { border-color: var(--blue); } 50% { border-color: white; } 100% { border-color: var(--blue); } }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
+    </style>
+</head>
+<body>
+
+    <div id="rotate-overlay"><div class="rotate-icon">🔄</div><h2>GIRA TU TELÉFONO</h2></div>
+
+    <div id="main-app">
+        <div class="top-bar">
+            <span>🎬 SET DE GRABACIÓN</span>
+            <div style="display:flex; gap:20px;">
+                <span>PUNTOS: <b id="score-val" style="color:var(--gold)">0</b></span>
+                <a href="index.html" class="btn-salir">SALIR</a>
+            </div>
+        </div>
+
+        <div class="stage">
+            <div class="clapperboard">
+                <div class="clapper-strip"></div>
+                <div class="clapper-body">
+                    <div class="info-header">
+                        <span id="status-text">ORGANIZA Y CAMBIA</span>
+                        <span>TOMA: <span id="tomas-restantes">4</span>/4</span>
+                    </div>
+
+                    <div class="script-grid" id="script-container"></div>
+                    
+                    <div class="start-container">
+                        <button id="btn-start-game" class="btn-action-start" onclick="comenzarSecuencia()">🎬 LUCES, CÁMARA, ACCIÓN</button>
+                    </div>
+                </div>
+
+                <div id="active-play" class="active-play-overlay">
+                    <div style="color:var(--gold); margin-bottom:10px; font-size:1.5em;">¡EN EL AIRE!</div>
+                    <div id="active-word" class="big-word">...</div>
+                    
+                    <div class="timer-container">
+                        <div id="active-timer" class="timer-fill"></div>
+                        <div id="timer-text" class="timer-text">8.0s</div>
+                    </div>
+                    
+                    <div id="bonus-indicator"></div>
+
+                    <div id="touch-area" style="width:100%; height:150px; display:flex; justify-content:center; align-items:center; cursor:pointer; background:rgba(255,255,255,0.05); border-radius:10px;" onclick="marcarVictoria()">
+                        <div class="action-hint">TOCA AQUÍ SI LO ADIVINAN</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="start-screen" class="overlay-screen">
+        <h1 style="font-size:2.5em; margin-bottom:10px; color:var(--gold);">MODO TIME ATTACK</h1>
+        <p style="font-size:1.2em; max-width:600px; text-align:center; margin-bottom:30px; color:#ccc;">
+            1. Organiza y cambia las cartas <b>AHORA</b>.<br>
+            2. Toca la carta azul para definirla.<br>
+            3. Al iniciar, <b>el tiempo no para</b>.<br>
+            4. ¡El tiempo que te sobre se suma a la siguiente carta!
+        </p>
+        <button class="btn-gold" onclick="cerrarIntro()">PREPARAR SET</button>
+    </div>
+
+    <div id="countdown-screen" class="overlay-screen" style="display:none;">
+        <div id="countdown-num" class="count-num">3</div>
+    </div>
+
+    <div id="modal-comodin" class="overlay-screen" style="display:none; background:rgba(0,0,0,0.9);">
+        <h2 style="color:white; margin-bottom:20px;">DEFINE LA ESCENA FINAL</h2>
+        <div class="modal-choice">
+            <button class="btn-opt opt-easy" onclick="definirComodin('facil')">FÁCIL (1Pt)</button>
+            <button class="btn-opt opt-med" onclick="definirComodin('media')">MEDIA (2Pt)</button>
+            <button class="btn-opt opt-hard" onclick="definirComodin('dificil')">DIFÍCIL (3Pt)</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="overlay-screen" style="display:none;">
+        <h1 style="color:var(--gold);">¡CORTE FINAL!</h1>
+        <p>PUNTUACIÓN TOTAL</p>
+        <div id="final-score" class="count-num" style="font-size:6em;">0</div>
+        <button class="btn-gold" onclick="location.reload()">NUEVA TOMA</button>
+    </div>
+
+    <script>
+        // --- BASE DE DATOS MASIVA (900+) ---
+        const WORDS = {
+            facil: [
+                "PERRO","GATO","PATO","VACA","POLLO","RANA","MONO","LEON","OSO","PEZ","SOL","LUNA","FLOR","ARBOL","MANO","PIE","OJO","BOCA","NARIZ","BEBE",
+                "COMER","DORMIR","CORRER","SALTAR","BAILAR","CANTAR","LLORAR","REIR","NADAR","VOLAR","APLAUDIR","BESAR","ABRAZAR","SALUDAR","LEER","ESCRIBIR","PINTAR",
+                "PELOTA","GLOBO","SILLA","MESA","CAMA","PUERTA","VENTANA","COCHE","MOTO","BICICLETA","AVION","TREN","BARCO","ZAPATO","SOMBRERO","GAFAS","RELOJ",
+                "TELEFONO","LLAVE","CUCHARA","TENEDOR","VASO","PLATO","CEPILLO","JABON","TOALLA","ESCOBA","CUBO","TIJERA","LAPIZ","LIBRO","MALETA","PARAGUAS",
+                "HELADO","PIZZA","HAMBURGUESA","HUEVO","LECHE","AGUA","PAN","QUESO","MANZANA","BANANA","UVA","LIMON","NARANJA","FRESA","SANDIA","PIÑA",
+                "FRIO","CALOR","LLUVIA","VIENTO","NIEVE","DIA","NOCHE","FELIZ","TRISTE","ENFADADO","ASUSTADO","FUERTE","RAPIDO","LENTO","GRANDE","PEQUEÑO",
+                "CAJA","BOLSA","REGALO","DINERO","CARTA","FOTO","MUSICA","GUITARRA","TAMBOR","PIANO","FUTBOL","GOL","CANASTA","RAQUETA","BATE",
+                "BOXEO","KARATE","GOLF","SURF","ESQUI","PATINAR","PESCAR","CAZAR","COCINAR","BARRER","LIMPIAR","LAVAR","PLANCHAR","COSER","TEJER",
+                "CONDUCTOR","MEDICO","POLICIA","BOMBERO","PROFESOR","PAYASO","MAGO","REY","REINA","PRINCESA","PIRATA","ROBOT","FANTASMA","BRUJA","MONSTRUO",
+                "CABEZA","BRAZO","PIERNA","DEDO","UÑA","PELO","DIENTE","LENGUA","OREJA","BARRIGA","ESPALDA","CUELLO","HOMBRO","RODILLA","CODO",
+                "SAL","PIMIENTA","AZUCAR","ARROZ","PASTA","SOPA","ENSALADA","POLLO","CARNE","PESCADO","HUEVO","TORTILLA","BOCADILLO","GALLETA","CHOCOLATE",
+                "AMARILLO","AZUL","ROJO","VERDE","BLANCO","NEGRO","GRIS","ROSA","NARANJA","VIOLETA","MARRON","ORO","PLATA","CLARO","OSCURO",
+                "UNO","DOS","TRES","CUATRO","CINCO","DIEZ","CIEN","MIL","PRIMERO","ULTIMO","MITAD","DOBLE","TODO","NADA","MUCHO",
+                "YO","TU","EL","ELLA","NOSOTROS","ELLOS","MIO","TUYO","SUYO","AQUI","ALLI","ARRIBA","ABAJO","DENTRO",
+                "PERRO CALIENTE","PALOMITAS","CINE","TELEVISION","RADIO","ORDENADOR","TABLET","MOVIL","INTERNET","VIDEOJUEGO","FOTO","VIDEO","CAMARA","MICROFONO","ALTAVOZ",
+                "GATO CON BOTAS","CAPERUCITA","PINOCHO","CENICIENTA","BLANCANIEVES","SIRENITA","ALADINO","TARZAN","HERCULES","MULAN","POCAHONTAS","BAMBI","DUMBO","NEMO","SHREK",
+                "CONEJO","RATON","PAJARO","AGUILA","BUHO","PINGUINO","PATO","GALLINA","GALLO","CERDO","CABALLO","OVEJA","CABRA","BURRO","LLAMA","CAMELLO","DELFIN","BALLENA","TIBURON",
+                "PULPO","CANGREJO","TORTUGA","SERPIENTE","COCODRILO","ARAÑA","ABEJAS","MARIPOSA","HORMIGA","MOSCA","MOSQUITO","GUSANO","CARACOL","ESTRELLA","NUBE","RAYO","ARCOIRIS",
+                "FRIO","CALOR","FUEGO","HIELO","PLAYA","MONTAÑA","RIO","MAR","CIUDAD","CAMPO","CASA","COLEGIO","PARQUE","MERCADO","HOSPITAL","IGLESIA","CIRCO","ZOOLOGICO","GRANJA",
+                "AMIGO","ENEMIGO","FAMILIA","PADRE","MADRE","HERMANO","HERMANA","ABUELO","ABUELA","TIO","TIA","PRIMO","PRIMA","BEBE","NIÑO","NIÑA","HOMBRE","MUJER","VIEJO"
+            ],
+            media: [
+                "LAVARSE LOS DIENTES","ATARSE LOS ZAPATOS","HACER LA CAMA","PONER LA MESA","SACAR LA BASURA","PASEAR AL PERRO","REGAR LAS PLANTAS","CORTAR EL CESPED","LAVAR EL COCHE","HACER LA COMPRA","COCINAR PASTA","FREIR HUEVO","HACER CAFE","SERVIR VINO","CORTAR PAN",
+                "CONDUCIR COCHE","MONTAR EN BICI","REMAR EN BARCA","MONTAR A CABALLO","ESCALAR MONTAÑA","TIRARSE EN PARACAIDAS","HACER SURF","JUGAR AL AJEDREZ","JUGAR A LAS CARTAS","TOCAR LA GUITARRA","TOCAR EL PIANO","TOCAR LA BATERIA","TOCAR EL VIOLIN","DIRIGIR ORQUESTA","CANTAR OPERA",
+                "MAQUILLARSE","AFEITARSE","DEPILARSE","CORTARSE EL PELO","PINTARSE LAS UÑAS","PROBARSE ROPA","HACER MALETA","BUSCAR LLAVES","PERDER EL BUS","PEDIR UN TAXI","PAGAR LA CUENTA","SACAR DINERO","HABLAR POR TELEFONO","HACER UN SELFIE","ENVIAR MENSAJE",
+                "TENER FRIO","TENER CALOR","TENER HAMBRE","TENER SED","TENER SUEÑO","ESTAR ENFERMO","TENER HIPO","ESTORNUDAR","TOSER","BOSTEZAR","SUSPIRAR","GUIÑAR UN OJO","CRUZAR LOS DEDOS","DAR LA MANO","CHOCAR LOS CINCO",
+                "PEDIR SILENCIO","PEDIR PERDON","DAR LAS GRACIAS","FELICITAR","REGAÑAR","DISCUTIR","PELEAR","ABRAZARSE","BESARSE","CASARSE","BAUTIZO","CUMPLEAÑOS","NAVIDAD","HALLOWEEN","CARNAVAL",
+                "DENTISTA","ENFERMERO","VETERINARIO","ABOGADO","JUEZ","CARTERO","FONTANERO","ELECTRICISTA","ALBAÑIL","CARPINTERO","JARDINERO","AGRICULTOR","GANADERO","PESCADOR","MINERO",
+                "PILOTO","AZAFATA","CAPITAN","CONDUCTOR","TAXISTA","CAMIONERO","REPARTIDOR","DEPENDIENTE","CAJERO","CAMARERO","COCINERO","LIMPIADOR","SEGURIDAD","ESPIA","DETECTIVE",
+                "FOTOGRAFO","PERIODISTA","ESCRITOR","PINTOR","ESCULTOR","ACTOR","CANTANTE","BAILARIN","MUSICO","DIRECTOR","MODELO","DISEÑADOR","ARQUITECTO","INGENIERO","CIENTIFICO",
+                "ASTRONAUTA","ASTRONOMO","ARQUEOLOGO","HISTORIADOR","PROFESOR","ESTUDIANTE","BIBLIOTECARIO","SACERDOTE","MONJA","POLITICO","PRESIDENTE","REY","REINA","PRINCIPE","PRINCESA",
+                "SUPERMAN","BATMAN","SPIDERMAN","WONDER WOMAN","HULK","THOR","IRON MAN","CAPITAN AMERICA","FLASH","AQUAMAN","JOKER","DARTH VADER","YODA","HARRY POTTER","GANDALF",
+                "DRACULA","FRANKENSTEIN","HOMBRE LOBO","MOMIA","ZOMBIE","FANTASMA","ESQUELETO","BRUJA","DEMONIO","ANGEL","CUPIDO","PAPA NOEL","ELFO","GNOMO","HADA",
+                "LEON MARINO","OSO POLAR","PINGUINO","CANGURO","KOALA","PANDA","GORILA","CHIMPANCE","LEMUR","PEREZOSO","ARMADILLO","MAPACHE","CASTOR","NUTRIA","ORNITORRINCO",
+                "AVESTRUZ","PAVO REAL","FLAMENCO","PELICANO","LORO","TUCAN","BUHO","AGUILA","HALCON","BUITRE","MURCIELAGO","COLIBRI","MARIPOSA","LIBELULA","ESCARABAJO",
+                "PULPO","CALAMAR","MEDUSA","ESTRELLA DE MAR","CABALLITO DE MAR","CANGREJO","LANGOSTA","GAMBA","OSTRA","ALMEJA","CARACOL","BOGAVANTE","ANGUILA","RAYA","TIBURON",
+                "COCODRILO","CAIMAN","TORTUGA","IGUANA","CAMALEON","GECKO","SERPIENTE","COBRA","BOA","VIBORA","RANA","SAPO","SALAMANDRA","TRITON","AXOLOTE",
+                "LONDRES","PARIS","ROMA","NUEVA YORK","TOKIO","PEKIN","MOSCU","SIDNEY","CAIRO","RIO DE JANEIRO","BUENOS AIRES","MEXICO DF","MADRID","BARCELONA","BERLIN",
+                "PIZZA","HAMBURGUESA","SUSHI","TACOS","PAELLA","TORTILLA","GAZPACHO","FABADA","COCIDO","LENTEJAS","ENSALADA","SOPA","FILETE","PESCADO","MARISCO",
+                "FRUTA","VERDURA","CARNE","PESCADO","HUEVOS","LACTEOS","CEREALES","PAN","DULCES","BEBIDAS","AGUA","VINO","CERVEZA","REFRESCO","ZUMO",
+                "ROPA","ZAPATOS","COMPLEMENTOS","JOYAS","MAQUILLAJE","PERFUME","JUGUETES","LIBROS","DISCOS","PELICULAS","MUEBLES","ELECTRODOMESTICOS","HERRAMIENTAS","COCHES","MOTOS",
+                "FIESTA","CONCIERTO","TEATRO","CINE","MUSEO","EXPOSICION","FERIA","PARQUE DE ATRACCIONES","ZOO","ACUARIO","CIRCO","DISCOTECA","BAR","RESTAURANTE","HOTEL"
+            ],
+            dificil: [
+                "CAMBIO CLIMATICO","INTELIGENCIA ARTIFICIAL","REALIDAD VIRTUAL","VIAJE EN EL TIEMPO","TELETRANSPORTACION","INVISIBILIDAD","TELEPATIA","TELEQUINESIS","LEVITACION","INMORTALIDAD","REENCARNACION","FANTASMA","ESPIRITU","ALMA","CONCIENCIA",
+                "DEMOCRACIA","DICTADURA","COMUNISMO","CAPITALISMO","SOCIALISMO","ANARQUIA","MONARQUIA","REPUBLICA","IMPERIO","COLONIA","INDEPENDENCIA","REVOLUCION","GUERRA","PAZ","LIBERTAD",
+                "JUSTICIA","IGUALDAD","FRATERNIDAD","SOLIDARIDAD","TOLERANCIA","RESPETO","HONESTIDAD","LEALTAD","TRAICION","VENGANZA","PERDON","AMOR","ODIO","ENVIDIA","CELOS",
+                "ORGULLO","SOBERBIA","HUMILDAD","MODESTIA","VANIDAD","EGOISMO","GENEROSIDAD","AVARICIA","LUJURIA","GULA","PEREZA","IRA","PACIENCIA","ESPERANZA","FE",
+                "DIOS","DIABLO","CIELO","INFIERNO","PURGATORIO","LIMBO","PARAISO","EDEN","NIRVANA","KARMA","DESTINO","SUERTE","CASUALIDAD","CAOS","ORDEN",
+                "UNIVERSO","GALAXIA","SISTEMA SOLAR","PLANETA","ESTRELLA","AGUJERO NEGRO","SUPERNOVA","NEBULOSA","COMETA","ASTEROIDE","METEORITO","BIG BANG","GRAVEDAD","RELATIVIDAD","CUANTICA",
+                "ATOMO","MOLECULA","CELULA","ADN","GENETICA","EVOLUCION","FOTOSINTESIS","RESPIRACION","DIGESTION","CIRCULACION","REPRODUCCION","NACIMIENTO","CRECIMIENTO","ENVEJECIMIENTO","MUERTE",
+                "MATEMATICAS","FISICA","QUIMICA","BIOLOGIA","GEOLOGIA","ASTRONOMIA","GEOGRAFIA","HISTORIA","FILOSOFIA","PSICOLOGIA","SOCIOLOGIA","ANTROPOLOGIA","ARQUEOLOGIA","LINGUISTICA","LITERATURA",
+                "POESIA","NOVELA","TEATRO","CINE","PINTURA","ESCULTURA","ARQUITECTURA","MUSICA","DANZA","FOTOGRAFIA","ARTESANIA","DISEÑO","MODA","GASTRONOMIA","ENOLOGIA",
+                "ECONOMIA","POLITICA","DERECHO","MEDICINA","INGENIERIA","INFORMATICA","ROBOTICA","NANOTECNOLOGIA","BIOTECNOLOGIA","CIBERNETICA","ELECTRONICA","MECANICA","AERONAUTICA","ASTRONAUTICA","NAUTICA",
+                "FUTBOL","BALONCESTO","TENIS","GOLF","RUGBY","CRICKET","BEISBOL","HOCKEY","VOLEIBOL","BALONMANO","WATERPOLO","NATACION","ATLETISMO","GIMNASIA","CICLISMO",
+                "AUTOMOVILISMO","MOTOCICLISMO","ESCALADA","ALPINISMO","ESPELEOLOGIA","BUCEO","SURF","WINDSURF","KITESURF","PADEL","BADMINTON","PING PONG","BILLAR","BOLOS","DARDOS",
+                "AJEDREZ","DAMAS","DOMINO","PARCHIS","OCA","MONOPOLY","SCRABBLE","TRIVIAL","POKER","BRIDGE","BLACKJACK","RULETA","BINGO","LOTERIA","QUINIELA",
+                "TITANIC","AVATAR","STAR WARS","JURASSIC PARK","INDIANA JONES","JAMES BOND","ROCKY","RAMBO","TERMINATOR","ALIEN","PREDATOR","MATRIX","GLADIATOR","BRAVEHEART","FORREST GUMP",
+                "EL PADRINO","SCARFACE","PULP FICTION","KILL BILL","RESERVOIR DOGS","TAXI DRIVER","PSICOSIS","EL EXORCISTA","EL RESPLANDOR","IT","SAW","SCREAM","HALLOWEEN","VIERNES 13","PESADILLA EN ELM STREET",
+                "EL SEÑOR DE LOS ANILLOS","HARRY POTTER","CRONICAS DE NARNIA","JUEGO DE TRONOS","THE WALKING DEAD","BREAKING BAD","STRANGER THINGS","LA CASA DE PAPEL","EL JUEGO DEL CALAMAR","LOS SIMPSON","FUTURAMA","PADRE DE FAMILIA","SOUTH PARK","RICK Y MORTY",
+                "SUPER MARIO","SONIC","POKEMON","ZELDA","FINAL FANTASY","MINECRAFT","FORTNITE","LEAGUE OF LEGENDS","WORLD OF WARCRAFT","CALL OF DUTY","GTA","FIFA","NBA 2K","GRAN TURISMO","NEED FOR SPEED",
+                "THE BEATLES","ROLLING STONES","QUEEN","AC/DC","METALLICA","NIRVANA","U2","COLDPLAY","IMAGINE DRAGONS","MICHAEL JACKSON","ELVIS PRESLEY","MADONNA","BEYONCE","LADY GAGA","RIHANNA"
+            ]
+        };
+
+        // --- ESTADO ---
+        let cards = [];
+        let score = 0;
+        let activeCardIndex = -1;
+        let timerInterval = null;
+        let timeLeft = 800; // 8 segundos base
+        let maxDuration = 800; // Para la barra de progreso
+        let tomasHechas = 0;
+        let dragSrcEl = null;
+        let gameStarted = false;
+
+        // --- INIT ---
+        function initGame() {
+            cards = [];
+            score = 0;
+            tomasHechas = 0;
+            gameStarted = false;
+            
+            const wFacil = getRandomWord('facil');
+            const wMedia = getRandomWord('media');
+            const wDificil = getRandomWord('dificil');
+
+            // 3 cambios por carta
+            cards = [
+                { id: 0, word: wFacil, type: 'FÁCIL', points: 1, status: 'pending', diffKey: 'facil', rerolls: 3 },
+                { id: 1, word: wMedia, type: 'MEDIA', points: 2, status: 'pending', diffKey: 'media', rerolls: 3 },
+                { id: 2, word: wDificil, type: 'DIFÍCIL', points: 3, status: 'pending', diffKey: 'dificil', rerolls: 3 },
+                { id: 3, word: '?', type: 'POR DEFINIR', points: 0, status: 'undefined', isWildcard: true, rerolls: 3 }
+            ];
+            
+            renderCards();
+            updateStartButton();
+        }
+
+        function getRandomWord(diff) {
+            const list = WORDS[diff];
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        function renderCards() {
+            const container = document.getElementById('script-container');
+            container.innerHTML = "";
+            
+            cards.forEach((c, idx) => {
+                const div = document.createElement('div');
+                let cssClass = 'script-card';
+                if(c.status === 'success') cssClass += ' success locked';
+                if(c.status === 'fail') cssClass += ' fail locked';
+                if(c.status === 'undefined') cssClass += ' undefined fixed-pos';
+                else if(c.isWildcard && c.status === 'pending') cssClass += ' fixed-pos';
+
+                div.className = cssClass;
+                
+                let borderColor = '#444';
+                if(c.type === 'FÁCIL') borderColor = 'var(--green)';
+                if(c.type === 'MEDIA') borderColor = 'var(--gold)';
+                if(c.type === 'DIFÍCIL') borderColor = 'var(--red)';
+                if(c.isWildcard && c.status === 'undefined') borderColor = 'var(--blue)';
+                div.style.borderColor = c.status === 'pending' || c.status === 'undefined' ? borderColor : '';
+
+                let innerHTML = `
+                    <div class="card-number">#${idx + 1}</div>
+                    <div class="card-points">${c.isWildcard && c.status === 'undefined' ? '?' : c.points}pt</div>
+                    <div class="card-title" style="color:${borderColor}">${c.type}</div>
+                    <div class="card-word">${c.isWildcard && c.status === 'undefined' ? 'TOQUE PARA<br>DEFINIR' : c.word}</div>
+                `;
+
+                // --- BOTÓN DE CAMBIO EN LA TARJETA (Solo fase 1) ---
+                if(!gameStarted && c.status === 'pending' && c.rerolls > 0) {
+                    innerHTML += `<div class="card-reroll" onclick="event.stopPropagation(); changeCardWord(${idx})">CAMBIAR (x${c.rerolls})</div>`;
+                }
+
+                div.innerHTML = innerHTML;
+
+                // Eventos
+                div.onclick = () => {
+                    if(!div.classList.contains('was-dragged')) cardClicked(idx);
+                    div.classList.remove('was-dragged');
+                };
+
+                const esCartaFija = (c.isWildcard || idx === 3); 
+                if(!gameStarted && c.status === 'pending' && !esCartaFija) {
+                    div.draggable = true;
+                    div.addEventListener('dragstart', handleDragStart);
+                    div.addEventListener('dragover', handleDragOver);
+                    div.addEventListener('drop', handleDrop);
+                    div.addEventListener('dragend', handleDragEnd);
+                    div.addEventListener('touchstart', handleTouchStart, {passive: false});
+                    div.addEventListener('touchmove', handleTouchMove, {passive: false});
+                    div.addEventListener('touchend', handleTouchEnd);
+                    div.dataset.index = idx;
+                    div.style.cursor = 'grab';
+                } else {
+                    div.draggable = false;
+                    div.style.cursor = (c.status === 'undefined') ? 'pointer' : 'default';
+                }
+                
+                container.appendChild(div);
+            });
+            
+            document.getElementById('score-val').innerText = score;
+            document.getElementById('tomas-restantes').innerText = (4 - tomasHechas);
+        }
+
+        // --- DRAG ---
+        function handleDragStart(e) {
+            if(parseInt(this.dataset.index) === 3) { e.preventDefault(); return; }
+            this.style.opacity = '0.4';
+            dragSrcEl = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        }
+        function handleDragOver(e) { if(e.preventDefault) e.preventDefault(); return false; }
+        function handleDrop(e) {
+            if(e.stopPropagation) e.stopPropagation();
+            if(dragSrcEl !== this) {
+                const srcIdx = parseInt(dragSrcEl.dataset.index);
+                const targetIdx = parseInt(this.dataset.index);
+                if(srcIdx < 3 && targetIdx < 3) swapCards(srcIdx, targetIdx);
+            }
+            return false;
+        }
+        function handleDragEnd(e) { this.style.opacity = '1'; }
+        
+        function handleTouchStart(e) {
+            if(this.classList.contains('locked') || parseInt(this.dataset.index) === 3) return;
+            this.touchTimer = setTimeout(() => {
+                this.isDragging = true;
+                this.classList.add('dragging');
+            }, 200); 
+        }
+        function handleTouchMove(e) {
+            if(this.isDragging) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                document.querySelectorAll('.script-card').forEach(c => c.classList.remove('drag-over'));
+                if(target && target.closest('.script-card')) {
+                    const t = target.closest('.script-card');
+                    if(t !== this && !t.classList.contains('locked') && parseInt(t.dataset.index) < 3) t.classList.add('drag-over');
+                }
+            } else clearTimeout(this.touchTimer);
+        }
+        function handleTouchEnd(e) {
+            clearTimeout(this.touchTimer);
+            if(this.isDragging) {
+                this.isDragging = false;
+                this.classList.remove('dragging');
+                this.classList.add('was-dragged');
+                const touch = e.changedTouches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                if(target && target.closest('.script-card')) {
+                    const t = target.closest('.script-card');
+                    const src = parseInt(this.dataset.index);
+                    const dst = parseInt(t.dataset.index);
+                    if(src !== dst && !t.classList.contains('locked') && src < 3 && dst < 3) swapCards(src, dst);
+                }
+                document.querySelectorAll('.script-card').forEach(c => c.classList.remove('drag-over'));
+            }
+        }
+        function swapCards(i1, i2) {
+            const temp = cards[i1]; cards[i1] = cards[i2]; cards[i2] = temp;
+            renderCards();
+        }
+        function changeCardWord(idx) {
+            const card = cards[idx];
+            if(card.rerolls <= 0) return;
+            const nuevaPalabra = getRandomWord(card.diffKey);
+            if(nuevaPalabra === card.word) { changeCardWord(idx); return; }
+            cards[idx].word = nuevaPalabra;
+            cards[idx].rerolls--;
+            renderCards();
+        }
+
+        // --- FLUJO ---
+        initGame();
+        function cerrarIntro() { document.getElementById('start-screen').style.display = 'none'; }
+
+        function cardClicked(idx) {
+            const card = cards[idx];
+            if(card.status === 'undefined' && !gameStarted) {
+                activeCardIndex = idx;
+                document.getElementById('modal-comodin').style.display = 'flex';
+            }
+        }
+
+        function definirComodin(diff) {
+            const idx = activeCardIndex;
+            const w = getRandomWord(diff);
+            let pts = 1; let type = "FÁCIL";
+            if(diff === 'media') { pts = 2; type="MEDIA"; }
+            if(diff === 'dificil') { pts = 3; type="DIFÍCIL"; }
+
+            cards[idx] = { ...cards[idx], word: w, points: pts, type: type, status: 'pending', diffKey: diff, isWildcard: false };
+            document.getElementById('modal-comodin').style.display = 'none';
+            renderCards();
+            updateStartButton();
+        }
+
+        function updateStartButton() {
+            const btn = document.getElementById('btn-start-game');
+            const indefinida = cards.find(c => c.status === 'undefined');
+            if(indefinida) {
+                btn.disabled = true;
+                btn.style.opacity = 0.5;
+                btn.innerText = "DEFINE LA ESCENA FINAL";
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = 1;
+                btn.innerText = "🎬 LUCES, CÁMARA, ACCIÓN";
+            }
+        }
+
+        function comenzarSecuencia() {
+            const indefinida = cards.find(c => c.status === 'undefined');
+            if(indefinida) { alert("¡Falta definir una carta!"); return; }
+
+            gameStarted = true;
+            document.getElementById('status-text').innerText = "¡EN RODAJE! NO PARES";
+            document.getElementById('btn-start-game').style.display = 'none'; 
+            renderCards(); 
+            
+            document.getElementById('countdown-screen').style.display = 'flex';
+            hablar("Luces, cámara... acción.");
+            
+            let count = 3;
+            const el = document.getElementById('countdown-num');
+            const int = setInterval(() => {
+                count--;
+                if(count > 0) el.innerText = count;
+                else {
+                    clearInterval(int);
+                    el.innerText = "¡ACCIÓN!";
+                    sonidoPito();
+                    setTimeout(() => { 
+                        document.getElementById('countdown-screen').style.display = 'none';
+                        // INICIO SECUENCIA CON 0 TIEMPO EXTRA
+                        jugarSecuencia(0, 0); 
+                    }, 500);
+                }
+            }, 1000);
+        }
+
+        function jugarSecuencia(idx, tiempoExtra) {
+            // SI TERMINAMOS
+            if(idx >= 4) {
+                finDelJuego();
+                return;
+            }
+
+            activeCardIndex = idx;
+            const card = cards[idx];
+            
+            // UI Activa
+            document.getElementById('active-word').innerText = card.word;
+            document.getElementById('bonus-indicator').innerText = ""; 
+            
+            if(tiempoExtra > 0) {
+                document.getElementById('bonus-indicator').innerText = "+" + (tiempoExtra/100).toFixed(1) + "s EXTRA";
+            }
+
+            document.getElementById('active-play').style.display = 'flex';
+            
+            // CALCULO TIEMPO: 8s Base + Extra
+            let baseTime = 800;
+            timeLeft = baseTime + tiempoExtra;
+            maxDuration = timeLeft; // Para escalar la barra al 100% relativo
+
+            const timerBar = document.getElementById('active-timer');
+            const timerTxt = document.getElementById('timer-text');
+            timerBar.style.backgroundColor = 'var(--green)';
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                
+                // Actualizar barra y texto
+                const pct = (timeLeft / maxDuration) * 100;
+                timerBar.style.width = pct + '%';
+                timerTxt.innerText = (timeLeft / 100).toFixed(1) + "s";
+
+                if(pct < 30) timerBar.style.backgroundColor = 'var(--red)';
+
+                // SI SE ACABA EL TIEMPO
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    cards[idx].status = 'fail';
+                    if(navigator.vibrate) navigator.vibrate(500);
+                    tomasHechas++;
+                    renderCards();
+                    // Pasar a siguiente SIN tiempo extra (0)
+                    jugarSecuencia(idx + 1, 0);
+                }
+            }, 10);
+        }
+
+        function marcarVictoria() {
+            clearInterval(timerInterval);
+            
+            const card = cards[activeCardIndex];
+            card.status = 'success';
+            score += card.points;
+            
+            if(navigator.vibrate) navigator.vibrate([50,50]);
+            
+            tomasHechas++;
+            renderCards();
+
+            // EL TIEMPO QUE SOBRÓ SE PASA A LA SIGUIENTE
+            const sobrante = timeLeft;
+            jugarSecuencia(activeCardIndex + 1, sobrante);
+        }
+
+        function finDelJuego() {
+            document.getElementById('active-play').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'flex';
+            document.getElementById('final-score').innerText = score;
+            hablar("Corte final.");
+        }
+
+        function hablar(txt) {
+            if('speechSynthesis' in window) {
+                const msg = new SpeechSynthesisUtterance(txt);
+                msg.lang = 'es-ES';
+                window.speechSynthesis.speak(msg);
+            }
+        }
+        function sonidoPito() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'triangle'; osc.frequency.value = 1500; gain.gain.value = 0.1;
+            osc.start(); osc.stop(ctx.currentTime + 0.5);
+        }
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4a3J_fGDd-r99EKT929bmB_Y08TJ3t2g",
+            authDomain: "casino-familia.firebaseapp.com",
+            databaseURL: "https://casino-familia-default-rtdb.firebaseio.com",
+            projectId: "casino-familia",
+            storageBucket: "casino-familia.firebasestorage.app",
+            messagingSenderId: "390973825874",
+            appId: "1:390973825874:web:ddc9f9d0d64bebf9c2908b"
+        };
+        try { firebase.initializeApp(firebaseConfig); } catch(e) {}
+    </script>
+</body>
+</html>
