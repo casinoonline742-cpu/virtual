@@ -334,13 +334,13 @@
             document.getElementById('mensajeErrorReg').innerText = "⚠️ Por favor llena todos los datos.";
             return;
         }
-
+ /* --- saldo inicial--- */
         auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
             db.ref('usuarios/' + cred.user.uid).set({
                 email: email,
                 nombre: nombre,
                 fechaNacimiento: fecha,
-                saldo: 2000
+                saldo: 0
             });
             document.getElementById('modal-bienvenida').style.display = 'flex';
         }).catch(e => {
