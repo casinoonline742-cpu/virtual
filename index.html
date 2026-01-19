@@ -30,16 +30,20 @@
         .activa { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- LOGIN --- */
+        /* --- FORMS --- */
         .login-header { text-align: center; margin-bottom: 30px; }
         input { 
             width: 100%; padding: 14px; margin: 8px 0; border-radius: 8px; 
             border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; 
         }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
         .btn-main { 
             width: 100%; padding: 14px; margin-top: 10px; border-radius: 8px; border: none; 
             font-weight: bold; cursor: pointer; background: var(--gold); color: black; 
         }
+        .btn-secondary { background: #333; color: white; margin-top: 10px; }
+        .btn-danger { background: transparent; color: #ff5252; border: 1px solid #ff5252; width: 100%; padding: 12px; border-radius: 8px; margin-top: 20px; cursor: pointer; }
 
         /* --- LOBBY --- */
         .user-card {
@@ -47,7 +51,8 @@
             border-radius: 16px; padding: 20px; margin-bottom: 16px;
             position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.4);
         }
-        .user-email { font-size: 13px; opacity: 0.9; margin-bottom: 10px; display: block; }
+        .user-email { font-size: 13px; opacity: 0.9; margin-bottom: 5px; display: block; }
+        .user-name { font-size: 18px; font-weight: bold; display: block; margin-bottom: 10px; text-transform: capitalize;}
         .balance-amount { font-size: 32px; font-weight: bold; display: block; margin-top: 5px; }
         .pot-icon { position: absolute; right: 20px; bottom: 15px; font-size: 40px; opacity: 0.8; }
 
@@ -60,7 +65,7 @@
         .banner-retiro { border-color: #03dac6; color: #03dac6; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* --- MENU JUEGOS --- */
+        /* --- MENUS --- */
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;}
         .game-item {
             background-color: var(--surface); aspect-ratio: 1 / 1; border-radius: 12px;
@@ -73,48 +78,25 @@
         .game-item svg { width: 50px; height: 50px; margin-bottom: 10px; fill: var(--gold); }
         .game-item b { font-size: 12px; letter-spacing: 1px; }
 
-        /* --- SECCIÓN FAMILIA --- */
-        .family-separator {
-            width: 100%; text-align: center; margin: 30px 0 15px 0;
-        }
+        .family-separator { width: 100%; text-align: center; margin: 30px 0 15px 0; }
         .btn-family-header {
             background: #222; color: var(--gold); border: 2px solid var(--gold);
             padding: 10px 30px; border-radius: 30px; font-weight: bold;
             font-size: 0.9em; letter-spacing: 1px;
         }
 
-        /* --- PANEL ADMIN --- */
+        /* --- ADMIN Y UTILS --- */
         .admin-tag { background: black; color: var(--gold); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; position: absolute; top: 20px; right: 20px; }
-        .btn-danger { background: transparent; color: #ff5252; border: 1px solid #ff5252; width: 100%; padding: 12px; border-radius: 8px; margin-top: 20px; cursor: pointer; }
-        
         #panel-admin { background: #1a1a1a; padding: 15px; border-radius: 12px; margin-top: 25px; border: 1px dashed #444; }
         
-        /* LISTA DE USUARIOS */
-        .user-list-container {
-            max-height: 250px; overflow-y: auto; 
-            background: #111; border: 1px solid #333; border-radius: 8px; margin-top: 10px;
-        }
-        .user-row {
-            padding: 12px; border-bottom: 1px solid #222; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-        }
+        .user-list-container { max-height: 250px; overflow-y: auto; background: #111; border: 1px solid #333; border-radius: 8px; margin-top: 10px; }
+        .user-row { padding: 12px; border-bottom: 1px solid #222; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .user-row:hover { background: #222; }
         .user-row.selected { background: rgba(0, 230, 118, 0.15); border-left: 4px solid #00e676; }
-        
-        .selected-box {
-            background: #222; border: 1px solid var(--gold); 
-            padding: 15px; margin: 15px 0; border-radius: 8px; text-align: center;
-        }
+        .selected-box { background: #222; border: 1px solid var(--gold); padding: 15px; margin: 15px 0; border-radius: 8px; text-align: center; }
 
-        /* --- POPUPS --- */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center;
-            animation: fadeIn 0.3s;
-        }
-        .modal-box {
-            background: #1e1e1e; padding: 25px; border-radius: 15px; border: 2px solid var(--gold);
-            text-align: center; max-width: 300px;
-        }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background: #1e1e1e; padding: 25px; border-radius: 15px; border: 2px solid var(--gold); text-align: center; max-width: 300px; }
         .error { color: #ff5252; font-size: 12px; text-align: center; margin-top: 10px; }
     </style>
 </head>
@@ -130,28 +112,66 @@
         <input type="email" id="email" placeholder="Correo electrónico">
         <input type="password" id="password" placeholder="Contraseña">
         <button class="btn-main" onclick="iniciarSesion()">ENTRAR</button>
-        <button class="btn-main" style="background:#333; color:white;" onclick="registrarUsuario()">CREAR CUENTA</button>
+        <button class="btn-main btn-secondary" onclick="mostrarPantalla('pantalla-registro')">REGISTRARME GRATIS</button>
         <p style="text-align:center; font-size: 13px; color: var(--gold); cursor:pointer;" onclick="recuperarClave()">¿Olvidaste tu contraseña?</p>
         <p id="mensajeError" class="error"></p>
+    </div>
+
+    <div id="pantalla-registro" class="pantalla">
+        <div class="login-header">
+            <h2 style="color: var(--gold);">📝 CREAR CUENTA</h2>
+            <p>Llena tus datos para empezar</p>
+        </div>
+        <label style="font-size:12px; color:#aaa;">Nombre Completo:</label>
+        <input type="text" id="reg-nombre" placeholder="Ej: Juan Perez">
+        <label style="font-size:12px; color:#aaa;">Fecha de Nacimiento:</label>
+        <input type="date" id="reg-fecha">
+        <label style="font-size:12px; color:#aaa;">Correo Electrónico:</label>
+        <input type="email" id="reg-correo" placeholder="correo@ejemplo.com">
+        <label style="font-size:12px; color:#aaa;">Contraseña:</label>
+        <input type="password" id="reg-pass" placeholder="Crea una clave segura">
+        <button class="btn-main" onclick="procesarRegistro()">FINALIZAR REGISTRO</button>
+        <button class="btn-main btn-secondary" onclick="mostrarPantalla('pantalla-login')">VOLVER AL LOGIN</button>
+        <p id="mensajeErrorReg" class="error"></p>
+    </div>
+
+    <div id="pantalla-actualizar" class="pantalla">
+        <div class="login-header">
+            <h2 style="color: #03dac6;">⚠️ ACTUALIZACIÓN REQUERIDA</h2>
+            <p>Por seguridad y control, necesitamos que actualices tus datos para continuar.</p>
+        </div>
+        
+        <label style="font-size:12px; color:#aaa;">Nombre Completo:</label>
+        <input type="text" id="upd-nombre" placeholder="Ej: Juan Perez">
+
+        <label style="font-size:12px; color:#aaa;">Fecha de Nacimiento:</label>
+        <input type="date" id="upd-fecha">
+        
+        <button class="btn-main" onclick="guardarActualizacion()">GUARDAR Y CONTINUAR</button>
+        <button class="btn-danger" onclick="cerrarSesion()">CANCELAR / SALIR</button>
+        <p id="mensajeErrorUpd" class="error"></p>
     </div>
 
     <div id="pantalla-lobby" class="pantalla">
         <div class="user-card">
             <span id="etiquetaAdmin" class="admin-tag" style="display:none;">ADMIN</span>
-            <span id="nombreUsuario" class="user-email">cargando...</span>
+            <span id="nombreUsuarioDisplay" class="user-name">Usuario</span>
+            <span id="emailUsuarioDisplay" class="user-email">...</span>
             <span style="font-size:11px; font-weight:bold;">SALDO DISPONIBLE</span>
             <span id="textoSaldo" class="balance-amount">$ 0</span>
             <span class="pot-icon">🎰</span> 
         </div>
 
-        <div class="banner-recarga" onclick="window.open('https://wa.me/573204491926?text=Hola,%20quiero%20recargar%20saldo', '_blank')">
-            💰 ¿Necesitas saldo? <b>WhatsApp Aquí</b>
-        </div>
-        <div class="banner-recarga banner-retiro" onclick="window.open('https://wa.me/573204491926?text=Hola,%20deseo%20retirar%20mis%20ganancias', '_blank')">
-            💸 ¿Quieres retirar? <b>Retirar Aquí</b>
+        <div id="seccion-financiera">
+            <div class="banner-recarga" onclick="window.open('https://wa.me/573204491926?text=Hola,%20quiero%20recargar%20saldo', '_blank')">
+                💰 ¿Necesitas saldo? <b>WhatsApp Aquí</b>
+            </div>
+            <div class="banner-recarga banner-retiro" onclick="window.open('https://wa.me/573204491926?text=Hola,%20deseo%20retirar%20mis%20ganancias', '_blank')">
+                💸 ¿Quieres retirar? <b>Retirar Aquí</b>
+            </div>
         </div>
 
-        <div class="menu-grid">
+        <div id="seccion-apuestas" class="menu-grid">
             <div class="game-item" onclick="irAlJuego('bingo.html')"> <span class="emoji">🎱</span><b>BINGO</b> </div>
             <div class="game-item" onclick="irAlJuego('ruleta.html')"> 
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#FFD700"/><circle cx="12" cy="12" r="3" fill="#FFD700"/><circle cx="12" cy="12" r="1" fill="#000"/></svg>
@@ -173,23 +193,10 @@
         </div>
 
         <div class="menu-grid" style="margin-top: 10px;">
-            
-            <div class="game-item" onclick="irAlJuego('adivina.html')"> 
-                <span class="emoji">🎬</span><b>ACTUACIÓN</b> 
-            </div>
-
-            <div class="game-item" onclick="irAlJuego('ajedrez.html')"> 
-                <span class="emoji">♟️</span><b>AJEDREZ</b> 
-            </div>
-
-            <div class="game-item" onclick="irAlJuego('serpientes.html')"> 
-                <span class="emoji">🐍</span><b>SERPIENTES</b> 
-            </div>
-
-            <div class="game-item" onclick="irAlJuego('monopoly.html')"> 
-                <span class="emoji">🎩</span><b>MONOPOLIO</b> 
-            </div>
-
+            <div class="game-item" onclick="irAlJuego('adivina.html')"> <span class="emoji">🎬</span><b>ACTUACIÓN</b> </div>
+            <div class="game-item" onclick="irAlJuego('ajedrez.html')"> <span class="emoji">♟️</span><b>AJEDREZ</b> </div>
+            <div class="game-item" onclick="irAlJuego('serpientes.html')"> <span class="emoji">🐍</span><b>SERPIENTES</b> </div>
+            <div class="game-item" onclick="irAlJuego('monopoly.html')"> <span class="emoji">🎩</span><b>MONOPOLIO</b> </div>
         </div>
 
         <button class="btn-danger" onclick="cerrarSesion()">CERRAR SESIÓN</button>
@@ -197,16 +204,12 @@
         <div id="panel-admin" style="display:none;">
             <h3 style="color: var(--gold); margin-top:0;">👑 Panel de Recargas</h3>
             <p style="color:#aaa; font-size:12px;">Selecciona un usuario de la lista:</p>
-            
             <input type="text" id="busquedaUsuario" placeholder="🔍 Buscar por correo..." style="background:#333; color:white; border:1px solid #555; padding:8px; width:100%; box-sizing:border-box;" onkeyup="filtrarUsuarios()">
-            
             <div id="listaUsuarios" class="user-list-container"></div>
-
             <div id="infoSeleccionado" class="selected-box" style="display:none;">
                 <span style="color:#aaa; font-size:11px;">RECARGAR A:</span><br>
                 <b id="lblUserSelect" style="color:#00e676; font-size:1.2em;">...</b>
                 <input type="hidden" id="uidDestino">
-                
                 <input type="number" id="montoRecarga" placeholder="Monto a recargar" style="margin-top:15px; text-align:center;">
                 <button class="btn-main" onclick="recargarSaldo()">ENVIAR SALDO</button>
             </div>
@@ -217,8 +220,8 @@
 <div id="modal-bienvenida" class="modal-overlay">
     <div class="modal-box">
         <h1>🎁</h1>
-        <h2 style="color: var(--gold);">¡BIENVENIDO PIDE TU RECARGA!</h2>
-        <p>Recarga en nuestro whatsaap <b style="color:#00e676;">+573204491926</b>.</p>
+        <h2 style="color: var(--gold);">¡BIENVENIDO!</h2>
+        <p>Tu cuenta ha sido creada exitosamente.</p>
         <button class="btn-main" onclick="cerrarBienvenida()">¡A JUGAR!</button>
     </div>
 </div>
@@ -245,26 +248,55 @@
     const db = firebase.database();
     
     let listaGlobalUsuarios = [];
+    let usuarioActualUID = null; // Variable para saber quien esta logueado en la pantalla de actualizar
 
     auth.onAuthStateChanged((user) => {
         if (user) {
-            mostrarPantalla('pantalla-lobby');
+            usuarioActualUID = user.uid;
             cargarDatosUsuario(user);
         } else {
+            usuarioActualUID = null;
             mostrarPantalla('pantalla-login');
         }
     });
 
-    // --- LOGICA DE USUARIOS Y ADMIN ---
+    // --- CARGA Y VERIFICACIÓN DE DATOS ---
     function cargarDatosUsuario(user) {
-        document.getElementById('nombreUsuario').innerText = user.email;
+        // Escuchamos los datos
         db.ref('usuarios/' + user.uid).on('value', (snap) => {
             const val = snap.val();
             if(val) {
+                // 1. VERIFICACIÓN: ¿FALTAN DATOS?
+                // Si no tiene nombre O no tiene fecha de nacimiento, lo mandamos a actualizar
+                if(!val.nombre || !val.fechaNacimiento) {
+                    mostrarPantalla('pantalla-actualizar');
+                    return; // Detenemos la función para que NO cargue el lobby
+                }
+
+                // 2. Si tiene datos, mostramos el LOBBY
+                mostrarPantalla('pantalla-lobby');
+
+                document.getElementById('nombreUsuarioDisplay').innerText = val.nombre;
+                document.getElementById('emailUsuarioDisplay').innerText = user.email;
+                
                 const money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val.saldo || 0);
                 document.getElementById('textoSaldo').innerText = money;
+
+                // 3. CONTROL DE EDAD
+                const esMayor = calcularSiEsMayor(val.fechaNacimiento);
+                const divApuestas = document.getElementById('seccion-apuestas');
+                const divFinanzas = document.getElementById('seccion-financiera');
+                
+                if(esMayor) {
+                    divApuestas.style.display = 'grid';
+                    divFinanzas.style.display = 'block';
+                } else {
+                    divApuestas.style.display = 'none';
+                    divFinanzas.style.display = 'none';
+                }
             }
         });
+
         if(user.email.toLowerCase() === CORREO_ADMIN.toLowerCase()) {
             document.getElementById('panel-admin').style.display = "block";
             document.getElementById('etiquetaAdmin').style.display = "block";
@@ -272,6 +304,79 @@
         }
     }
 
+    function calcularSiEsMayor(fechaNacStr) {
+        const hoy = new Date();
+        const nacimiento = new Date(fechaNacStr);
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const mes = hoy.getMonth() - nacimiento.getMonth();
+        if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+            edad--;
+        }
+        return edad >= 18;
+    }
+
+    // --- LÓGICA DE REGISTRO ---
+    function procesarRegistro() {
+        const nombre = document.getElementById('reg-nombre').value.trim();
+        const fecha = document.getElementById('reg-fecha').value;
+        const email = document.getElementById('reg-correo').value.trim();
+        const pass = document.getElementById('reg-pass').value;
+
+        if(!nombre || !fecha || !email || !pass) {
+            document.getElementById('mensajeErrorReg').innerText = "⚠️ Por favor llena todos los datos.";
+            return;
+        }
+
+        auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
+            db.ref('usuarios/' + cred.user.uid).set({
+                email: email,
+                nombre: nombre,
+                fechaNacimiento: fecha,
+                saldo: 2000
+            });
+            document.getElementById('modal-bienvenida').style.display = 'flex';
+        }).catch(e => {
+            document.getElementById('mensajeErrorReg').innerText = "Error: " + e.message;
+        });
+    }
+
+    // --- NUEVA LÓGICA: ACTUALIZAR DATOS ANTIGUOS ---
+    function guardarActualizacion() {
+        const nombre = document.getElementById('upd-nombre').value.trim();
+        const fecha = document.getElementById('upd-fecha').value;
+
+        if(!nombre || !fecha) {
+            document.getElementById('mensajeErrorUpd').innerText = "⚠️ Ambos campos son obligatorios.";
+            return;
+        }
+
+        if(usuarioActualUID) {
+            db.ref('usuarios/' + usuarioActualUID).update({
+                nombre: nombre,
+                fechaNacimiento: fecha
+            }).then(() => {
+                // Al actualizarse la DB, el listener 'on' de arriba se dispara solo
+                // y como ya tendrá datos, redigirá al Lobby automáticamente.
+                alert("¡Datos actualizados correctamente!");
+            }).catch(e => alert(e.message));
+        }
+    }
+
+    // --- LOGIN & UTILS ---
+    function iniciarSesion() {
+        const email = document.getElementById('email').value.trim();
+        const pass = document.getElementById('password').value;
+        auth.signInWithEmailAndPassword(email, pass).catch(e => document.getElementById('mensajeError').innerText = e.message);
+    }
+    function cerrarSesion() { auth.signOut(); }
+    function cerrarBienvenida() { document.getElementById('modal-bienvenida').style.display = 'none'; }
+    function recuperarClave() {
+        const email = document.getElementById('email').value.trim();
+        if(!email) return alert("Escribe tu correo en el login primero.");
+        auth.sendPasswordResetEmail(email).then(() => alert("Correo enviado.")).catch(e=>alert(e.message));
+    }
+
+    // --- ADMIN ---
     function cargarListaUsuariosParaAdmin() {
         db.ref('usuarios').on('value', (snap) => {
             listaGlobalUsuarios = [];
@@ -286,93 +391,43 @@
             renderizarLista(listaGlobalUsuarios);
         });
     }
-
     function renderizarLista(lista) {
         const contenedor = document.getElementById('listaUsuarios');
         contenedor.innerHTML = "";
-        
-        if(lista.length === 0) {
-            contenedor.innerHTML = "<div style='padding:10px; text-align:center; color:#666;'>No hay usuarios</div>";
-            return;
-        }
-
+        if(lista.length === 0) { contenedor.innerHTML = "<div style='padding:10px; text-align:center; color:#666;'>No hay usuarios</div>"; return; }
         lista.forEach(u => {
             const div = document.createElement('div');
             div.className = 'user-row';
             div.onclick = () => seleccionarUsuario(u.uid, u.email, div);
-            div.innerHTML = `
-                <div>
-                    <b>${u.email}</b>
-                    <small>ID: ${u.uid.substring(0,6)}...</small>
-                </div>
-                <div style="color:var(--gold); font-weight:bold;">$${u.saldo}</div>
-            `;
+            div.innerHTML = `<div><b>${u.email}</b><small>ID: ${u.uid.substring(0,6)}...</small></div><div style="color:var(--gold); font-weight:bold;">$${u.saldo}</div>`;
             contenedor.appendChild(div);
         });
     }
-
     function filtrarUsuarios() {
         const texto = document.getElementById('busquedaUsuario').value.toLowerCase();
-        const filtrados = listaGlobalUsuarios.filter(u => u.email.toLowerCase().includes(texto));
-        renderizarLista(filtrados);
+        renderizarLista(listaGlobalUsuarios.filter(u => u.email.toLowerCase().includes(texto)));
     }
-
-    function seleccionarUsuario(uid, email, elementoDOM) {
-        document.querySelectorAll('.user-row').forEach(el => el.classList.remove('selected'));
-        elementoDOM.classList.add('selected');
-        
+    function seleccionarUsuario(uid, email, el) {
+        document.querySelectorAll('.user-row').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
         document.getElementById('uidDestino').value = uid;
         document.getElementById('lblUserSelect').innerText = email;
         document.getElementById('infoSeleccionado').style.display = 'block';
-        
-        // Auto scroll hacia abajo para ver el input de recarga
         document.getElementById('infoSeleccionado').scrollIntoView({behavior: "smooth"});
     }
-
     function recargarSaldo() {
         const uid = document.getElementById('uidDestino').value;
         const monto = parseInt(document.getElementById('montoRecarga').value);
-        
-        if(!uid) { alert("⚠️ Selecciona un usuario primero."); return; }
-        if(!monto) { alert("⚠️ Ingresa un monto válido."); return; }
-
+        if(!uid || !monto) return alert("Verifica los datos.");
         db.ref('usuarios/' + uid).once('value').then(s => {
             if(s.exists()){
-                const nuevoSaldo = (s.val().saldo || 0) + monto;
-                db.ref('usuarios/' + uid).update({ saldo: nuevoSaldo });
-                
-                alert(`✅ RECARGA EXITOSA\n\nUsuario: ${document.getElementById('lblUserSelect').innerText}\nMonto: $${monto}`);
+                db.ref('usuarios/' + uid).update({ saldo: (s.val().saldo || 0) + monto });
+                alert("Recarga Exitosa");
                 document.getElementById('montoRecarga').value = "";
-            } else {
-                alert("Error: Usuario no encontrado en DB");
             }
         });
     }
 
-    // --- LOGIN & REGISTRO ---
-    function registrarUsuario() {
-        const email = document.getElementById('email').value.trim();
-        const pass = document.getElementById('password').value;
-        if(!email || !pass) return;
-        auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
-            db.ref('usuarios/' + cred.user.uid).set({ email: email, saldo: 2000 });
-            document.getElementById('modal-bienvenida').style.display = 'flex';
-        }).catch(e => document.getElementById('mensajeError').innerText = e.message);
-    }
-    function cerrarBienvenida() { document.getElementById('modal-bienvenida').style.display = 'none'; }
-    function iniciarSesion() {
-        const email = document.getElementById('email').value.trim();
-        const pass = document.getElementById('password').value;
-        auth.signInWithEmailAndPassword(email, pass).catch(e => document.getElementById('mensajeError').innerText = e.message);
-    }
-    function cerrarSesion() { auth.signOut(); }
-    function recuperarClave() {
-        const email = document.getElementById('email').value.trim();
-        if(!email) return alert("Escribe tu correo en el campo de arriba primero.");
-        auth.sendPasswordResetEmail(email).then(() => alert("Correo de recuperación enviado.")).catch(e=>alert(e.message));
-    }
-
-    // --- NAVEGACIÓN ---
     function mostrarPantalla(id) {
         document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
         document.getElementById(id).classList.add('activa');
