@@ -248,7 +248,7 @@
     const db = firebase.database();
     
     let listaGlobalUsuarios = [];
-    let usuarioActualUID = null; // Variable para saber quien esta logueado en la pantalla de actualizar
+    let usuarioActualUID = null;
 
     auth.onAuthStateChanged((user) => {
         if (user) {
@@ -260,17 +260,15 @@
         }
     });
 
-    // --- CARGA Y VERIFICACIÓN DE DATOS ---
+    // --- FUNCION MODIFICADA PARA OCULTAR SALDO A MENORES ---
     function cargarDatosUsuario(user) {
-        // Escuchamos los datos
         db.ref('usuarios/' + user.uid).on('value', (snap) => {
             const val = snap.val();
             if(val) {
                 // 1. VERIFICACIÓN: ¿FALTAN DATOS?
-                // Si no tiene nombre O no tiene fecha de nacimiento, lo mandamos a actualizar
                 if(!val.nombre || !val.fechaNacimiento) {
                     mostrarPantalla('pantalla-actualizar');
-                    return; // Detenemos la función para que NO cargue el lobby
+                    return; 
                 }
 
                 // 2. Si tiene datos, mostramos el LOBBY
@@ -279,20 +277,25 @@
                 document.getElementById('nombreUsuarioDisplay').innerText = val.nombre;
                 document.getElementById('emailUsuarioDisplay').innerText = user.email;
                 
-                const money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val.saldo || 0);
-                document.getElementById('textoSaldo').innerText = money;
-
-                // 3. CONTROL DE EDAD
+                // 3. LOGICA DE EDAD
                 const esMayor = calcularSiEsMayor(val.fechaNacimiento);
-                const divApuestas = document.getElementById('seccion-apuestas');
-                const divFinanzas = document.getElementById('seccion-financiera');
+                const money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val.saldo || 0);
                 
-                if(esMayor) {
-                    divApuestas.style.display = 'grid';
-                    divFinanzas.style.display = 'block';
+                // Obtenemos el elemento de texto del saldo
+                const txtSaldo = document.getElementById('textoSaldo');
+
+                if (esMayor) {
+                    // Si es MAYOR: Muestra saldo y juegos de apuestas
+                    txtSaldo.innerText = money;
+                    txtSaldo.style.fontSize = "32px"; 
+                    document.getElementById('seccion-apuestas').style.display = 'grid';
+                    document.getElementById('seccion-financiera').style.display = 'block';
                 } else {
-                    divApuestas.style.display = 'none';
-                    divFinanzas.style.display = 'none';
+                    // Si es MENOR: Muestra texto restringido y oculta apuestas
+                    txtSaldo.innerText = "🔒 Restringido";
+                    txtSaldo.style.fontSize = "20px";
+                    document.getElementById('seccion-apuestas').style.display = 'none';
+                    document.getElementById('seccion-financiera').style.display = 'none';
                 }
             }
         });
@@ -340,7 +343,7 @@
         });
     }
 
-    // --- NUEVA LÓGICA: ACTUALIZAR DATOS ANTIGUOS ---
+    // --- ACTUALIZAR DATOS ---
     function guardarActualizacion() {
         const nombre = document.getElementById('upd-nombre').value.trim();
         const fecha = document.getElementById('upd-fecha').value;
@@ -355,8 +358,6 @@
                 nombre: nombre,
                 fechaNacimiento: fecha
             }).then(() => {
-                // Al actualizarse la DB, el listener 'on' de arriba se dispara solo
-                // y como ya tendrá datos, redigirá al Lobby automáticamente.
                 alert("¡Datos actualizados correctamente!");
             }).catch(e => alert(e.message));
         }
